@@ -1414,7 +1414,10 @@ function historyView(){
 /* ---------- shell ---------- */
 var main=document.getElementById("main"), navEl=document.getElementById("nav"), gate=document.getElementById("gate"), appEl=document.getElementById("app");
 function parseHash(){
-  var h=location.hash.slice(1), mm=/^(?:(\d{4})-)?(?:(summary|compare|search|memo|annual|history)|m(\d{1,2}))$/.exec(h);
+  var h=location.hash.slice(1);
+  /* 주소에 화면 지정이 없으면(처음 로그인·다시 접속) 이번 달 탭을 먼저 보여 준다 */
+  if(!h)return {y:YEAR,v:NOW.getFullYear()===YEAR?NOW.getMonth()+1:"summary"};
+  var mm=/^(?:(\d{4})-)?(?:(summary|compare|search|memo|annual|history)|m(\d{1,2}))$/.exec(h);
   var y=YEAR, v="summary";
   if(mm){
     if(mm[2])v=mm[2];
