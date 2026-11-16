@@ -163,10 +163,6 @@ nav a.xfirst{margin-left:8px}
 dialog#pst textarea{height:200px}
 .hint{display:block;font-size:12px;color:var(--muted);margin-top:4px}
 .hint button{font:inherit;font-size:12px;border:1px dashed var(--line);background:transparent;color:var(--accent);border-radius:7px;padding:2px 8px;cursor:pointer;margin-left:4px}
-.ratio{display:flex;gap:6px 8px;flex-wrap:wrap;align-items:center;padding:8px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);grid-column:1/-1}
-.ratio input{font:inherit;width:54px;text-align:center;padding:4px 6px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)}
-.ratio .rtxt{flex:1 1 100%;color:var(--ink);font-size:13px;line-height:1.45}
-.ratio button{font:inherit;font-size:12px;border:1px dashed var(--line);background:transparent;color:var(--accent);border-radius:7px;padding:3px 8px;cursor:pointer}
 .kvgrid{display:grid;gap:8px 10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px}
 .kvc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
 .kvc .k{font-size:12px;color:var(--muted)}.kvc .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px;overflow-wrap:anywhere}
@@ -782,8 +778,7 @@ function monthView(m){
   var room='<div class="stat key"><span class="lb">이달의 비상금<br>수입 − 저축 − 지출</span><div class="v" data-bind="room"></div></div>';
   var settle='<section class="settle" aria-label="결제자별 합계">'
     +'<div class="who o"><span class="lb"><i></i>옹우한테 보내준 돈</span><div class="v" data-bind="sendO"></div><span class="sub">옹 결제 항목 합계</span></div>'
-    +'<div class="who d"><span class="lb"><i></i>답니한테 보내준 돈</span><div class="v" data-bind="sendD"></div><span class="sub">답 결제 항목 합계</span></div>'
-    +'<div class="ratio"><span>정산 참고 · 옹 부담</span><input data-ratio="1" inputmode="numeric" aria-label="옹 부담 비율(%)" value="'+KV.settle.ratio+'">%<button type="button" data-act="ratiosal">급여 비율로</button><span class="rtxt" data-bind="settleTxt"></span></div></section>';
+    +'<div class="who d"><span class="lb"><i></i>답니한테 보내준 돈</span><div class="v" data-bind="sendD"></div><span class="sub">답 결제 항목 합계</span></div></section>';
   var avail='<div class="stat"><label for="top-avail">가용금액 합계</label><input id="top-avail" class="amt" data-top="avail" inputmode="'+AMT_MODE+'" placeholder="0" value="'+fmtIn(d.avail)+'">'
     +'<span class="hint">올해 1~'+m+'월 비상금 누적 <b data-bind="cumRoom"></b><button type="button" data-act="availauto">자동 입력</button></span></div>'
     +'<div class="stat"><label for="top-baby">하꿍이 저축 합계 (25일 기준)</label><input id="top-baby" class="amt" data-top="baby" inputmode="'+AMT_MODE+'" placeholder="0" value="'+fmtIn(d.baby)+'">'
@@ -861,8 +856,6 @@ function refresh(){
   map.cumRoom=won(cum);
   var bb=S.months[cur].baby||0, pb=cur>1?(S.months[cur-1].baby||0):null;
   map.babyHint=pb===null?"":(bb||pb?"전월 "+won(pb)+" → 증감 "+won(bb-pb):"");
-  var tot=r.sendO+r.sendD, ro=Math.max(0,Math.min(100,+KV.settle.ratio||0)), shO=Math.round(tot*ro/100), diff=r.sendO-shO;
-  map.settleTxt=tot?("옹 "+ro+" : 답 "+(100-ro)+"로 나누면 옹 "+won(shO)+" · 답 "+won(tot-shO)+" 부담. "+(diff>0?"답니가 옹우에게 "+won(diff)+" 보내면 정산돼요.":diff<0?"옹우가 답니에게 "+won(-diff)+" 보내면 정산돼요.":"정산할 금액이 없어요.")+" (참고용)"):"";
   document.querySelectorAll("[data-bind]").forEach(function(el){
     var k=el.getAttribute("data-bind");
     el.textContent=map[k]==null?"":map[k];
@@ -944,7 +937,7 @@ function summaryView(){
 
 
 /* ---------- 공용 저장소(app_kv): 템플릿·예산·메모 ---------- */
-var KV={templates:{income:[],saving:[],fixed:[]},budgets:{},memo:[],locks:{},history:[],settle:{ratio:50},grad:{total:0,pay:[],hold:[]},loan:{loans:[]},ok:false}, kvDirty={}, kvTimer={};
+var KV={templates:{income:[],saving:[],fixed:[]},budgets:{},memo:[],locks:{},history:[],grad:{total:0,pay:[],hold:[]},loan:{loans:[]},ok:false}, kvDirty={}, kvTimer={};
 var LOCK_LS="gagyebu_locks";
 /* 월 잠금: app_kv가 있으면 부부 공용, 없으면 이 기기에만 저장 */
 function isLocked(y,m){return !!KV.locks[y+"-"+m]}
@@ -977,14 +970,13 @@ async function loadKV(){
       else if(x.key==="memo")KV.memo=(x.value&&x.value.notes)||[];
       else if(x.key==="locks")KV.locks=x.value||{};
       else if(x.key==="history")KV.history=(x.value&&x.value.items)||[];
-      else if(x.key==="settle")KV.settle=Object.assign({ratio:50},x.value||{});
       else if(x.key==="grad")KV.grad=Object.assign({total:0,pay:[],hold:[]},x.value||{});
       else if(x.key==="loan")KV.loan=Object.assign({loans:[]},x.value||{});
     });
   }catch(e){KV.ok=false}
   if(!KV.ok){try{KV.locks=JSON.parse(localStorage.getItem(LOCK_LS)||"{}")||{}}catch(e){KV.locks={}}}
 }
-function kvVal(key){return key==="templates"?KV.templates:key==="budgets"?KV.budgets:key==="locks"?KV.locks:key==="history"?{items:KV.history}:key==="settle"?KV.settle:key==="grad"?KV.grad:key==="loan"?KV.loan:{notes:KV.memo}}
+function kvVal(key){return key==="templates"?KV.templates:key==="budgets"?KV.budgets:key==="locks"?KV.locks:key==="history"?{items:KV.history}:key==="grad"?KV.grad:key==="loan"?KV.loan:{notes:KV.memo}}
 async function flushKV(key){
   clearTimeout(kvTimer[key]);
   if(!kvDirty[key])return;
@@ -1242,16 +1234,6 @@ function logH(text){
 }
 function itemLabel(sec,x){return ((isVar(sec)?x.desc:x.name)||"(빈 항목)")+" "+won(+x.amt||0)}
 function cumRoom(m){var s=0;for(var i=1;i<=m;i++)s+=calc(i).room;return s}
-function salaryRatio(){
-  var o=0,d=0;
-  for(var m=1;m<=12;m++)S.months[m].income.forEach(function(x){
-    if(isEx(x))return;var n=x.name||"";
-    if(/급여/.test(n)&&/옹/.test(n))o+=+x.amt||0;else if(/급여/.test(n)&&/답/.test(n))d+=+x.amt||0;
-  });
-  if(!o&&!d){alert("올해 '급여_옹우', '급여_답니' 항목을 찾지 못했어요.");return}
-  var r=Math.round(o/(o+d)*100);KV.settle.ratio=r;saveKV("settle");
-  var el=main.querySelector("[data-ratio]");if(el)el.value=String(r);refresh();
-}
 
 /* ---------- 여러 줄 붙여넣기 ---------- */
 var pstSec=null, pstDlg=document.getElementById("pst"), pstText=document.getElementById("pstText"), pstMsg=document.getElementById("pstMsg");
@@ -1652,10 +1634,6 @@ main.addEventListener("input",function(e){
   var t=e.target;
   if(!isMonth()){viewInput(t);return}
   var top=t.getAttribute("data-top"), f=t.getAttribute("data-f");
-  if(t.hasAttribute("data-ratio")){
-    var rv=parseInt(String(t.value).replace(/\D/g,""),10);if(isNaN(rv))rv=0;rv=Math.min(100,rv);
-    t.value=String(rv);KV.settle.ratio=rv;saveKV("settle");refresh();return;
-  }
   if(t.classList.contains("amt")){
     var raw=t.value, neg=/^\s*[-−–—ㅡ]|[-−–—ㅡ]\s*$/.test(raw);
     var digits=raw.replace(/\D/g,"");
@@ -1683,7 +1661,6 @@ main.addEventListener("click",function(e){
     var act=b.getAttribute("data-act"), d=S.months[cur];
     if(act==="lock"){toggleLock(cur);return}
     if(act==="msum"){openSummary(cur);return}
-    if(act==="ratiosal"){salaryRatio();return}
     if(isLocked(YEAR,cur)&&act!=="budget")return;
     if(act==="availauto"){
       snapshot(cur+"월 가용금액을 자동 입력했어요.");
