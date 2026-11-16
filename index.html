@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>조이쀼의 가계부</title>
+<script>try{var __t=localStorage.getItem("gagyebu_theme");if(__t==="dark"||__t==="light")document.documentElement.setAttribute("data-theme",__t)}catch(e){}</script>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4458CF">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -130,8 +131,8 @@ svg .empty{fill:var(--muted);font-size:14px}
 .add{border:1px dashed var(--line);background:transparent;border-radius:8px;padding:3px 9px;color:var(--muted);cursor:pointer;font-size:13px;white-space:nowrap}
 .add:hover{color:var(--ink);border-color:var(--muted)}
 .row{display:grid;gap:4px;align-items:center;border-bottom:1px solid var(--soft)}
-.r2{grid-template-columns:minmax(0,1fr) 112px 46px}
-.r3{grid-template-columns:minmax(0,1fr) 22px 108px 46px;align-items:center}
+.r2{grid-template-columns:minmax(0,1fr) 100px 44px}
+.r3{grid-template-columns:minmax(0,1fr) 22px 100px 44px;align-items:center}
 .r4{grid-template-columns:22px 36px minmax(0,1fr) 70px 46px;gap:3px}
 .row input,.row select{font:inherit;color:inherit;background:transparent;border:0;border-radius:6px;padding:7px 5px;min-width:0;width:100%}
 .row select{appearance:none;-webkit-appearance:none;text-align:center;padding-left:0;padding-right:0;cursor:pointer}
@@ -309,7 +310,7 @@ main.locked .pagehead h1::after{content:" 🔒";font-size:.8em}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @container sheet (max-width:519px){.z3,.pair{grid-template-columns:minmax(0,1fr)}}
 @container sheet (min-width:720px){
-  .sheet{grid-template-columns:230px 280px minmax(0,1fr)}
+  .sheet{grid-template-columns:300px 320px minmax(0,1fr)}
   .z3{grid-column:1/-1;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
 }
 @container sheet (min-width:1560px){
@@ -334,7 +335,7 @@ main.locked .pagehead h1::after{content:" 🔒";font-size:.8em}
   .sync{margin:0 6px 0 0}
   main.narrow{max-width:1100px;margin:0 auto;width:100%}
   .sheetwrap{overflow-x:auto;container-type:normal}
-  .sheet{grid-template-columns:240px 300px minmax(0,1fr);min-width:1860px}
+  .sheet{grid-template-columns:300px 330px minmax(0,1fr);min-width:1950px}
   .z3{grid-column:auto;grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 
@@ -451,7 +452,7 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
     <div class="brand">조이쀼의 가계부</div>
     <div class="yearbox"><select id="yearSel" class="yearsel" aria-label="연도 선택"></select><button class="btn" id="yearAdd" type="button">연도 추가</button></div>
     <nav id="nav" aria-label="월 선택"></nav>
-    <div class="tools"><div class="sync" id="sync" role="status">불러오는 중…</div><div class="sync" id="bkInfo"></div><button class="btn" id="bkBtn" type="button">백업·복원</button> <button class="btn" id="outBtn" type="button">로그아웃</button></div>
+    <div class="tools"><div class="sync" id="sync" role="status">불러오는 중…</div><div class="sync" id="bkInfo"></div><button class="btn" id="themeBtn" type="button" aria-label="화면 모드 전환">🌙 다크</button> <button class="btn" id="bkBtn" type="button">백업·복원</button> <button class="btn" id="outBtn" type="button">로그아웃</button></div>
   </aside>
   <main id="main"></main>
 </div>
@@ -1809,6 +1810,20 @@ bkRestore.addEventListener("click",function(){
   }
   schedule();render();disarm();bk.close();
 });
+/* 다크/라이트 모드 (처음엔 기기 설정을 따르고, 누르면 기억해요) */
+function curTheme(){var t=document.documentElement.getAttribute("data-theme");return t||(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")}
+function updateThemeBtn(){
+  var b=document.getElementById("themeBtn"), dark=curTheme()==="dark";
+  if(b)b.textContent=dark?"☀ 라이트":"🌙 다크";
+  var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",dark?"#131728":"#4458CF");
+}
+document.getElementById("themeBtn").addEventListener("click",function(){
+  var t=curTheme()==="dark"?"light":"dark";
+  document.documentElement.setAttribute("data-theme",t);
+  try{localStorage.setItem("gagyebu_theme",t)}catch(e){}
+  updateThemeBtn();
+});
+updateThemeBtn();
 document.getElementById("outBtn").addEventListener("click",signOut);
 
 window.addEventListener("beforeunload",function(e){
