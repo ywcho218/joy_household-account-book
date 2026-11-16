@@ -578,11 +578,16 @@ async function flush(){
   try{
     var rows=[];
     ids.forEach(function(id){var it=findItem(id);if(it)rows.push(toRow(it))});
-    if(rows.length){var r=await sb.from("entries").upsert(rows,{onConflict:"id"});if(r.error)throw r.error}
+    for(var u=0;u<rows.length;u+=300){var r=await sb.from("entries").upsert(rows.slice(u,u+300),{onConflict:"id"});if(r.error)throw r.error}
   }catch(e){bad=true;ids.forEach(function(id){dirty[id]=true})}
-  try{
-    if(dl.length){var r2=await sb.from("entries").delete().in("id",dl);if(r2.error)throw r2.error}
-  }catch(e){bad=true;dl.forEach(function(id){dels[id]=true})}
+  /* 한 번에 지우는 id가 많으면 요청 주소가 너무 길어져 실패하므로 나눠서 지운다 */
+  var delFail={};
+  for(var c=0;c<dl.length;c+=50){
+    var part=dl.slice(c,c+50);
+    try{var r2=await sb.from("entries").delete().in("id",part);if(r2.error)throw r2.error}
+    catch(e){bad=true;part.forEach(function(id){delFail[id]=true})}
+  }
+  Object.keys(delFail).forEach(function(id){dels[id]=true});
   try{
     for(var i=0;i<ms.length;i++){
       var m=+ms[i], d=S.months[m];
