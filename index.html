@@ -580,6 +580,12 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
 
 <dialog id="more">
   <h2>더보기</h2>
+  <div class="kvsub" style="margin-top:0">통계</div>
+  <div class="morelist">
+    <button class="btn" type="button" data-m="compare">월별 비교</button>
+    <button class="btn" type="button" data-m="annual">연간 결산</button>
+  </div>
+  <div class="kvsub">기능</div>
   <div class="morelist">
     <button class="btn" type="button" data-m="year">연도 추가</button>
     <button class="btn" type="button" data-m="history">변경 이력</button>
@@ -2007,10 +2013,10 @@ function navHTML(){
   for(var m=1;m<=12;m++){
     h+='<a class="'+(cur===m?"on":"")+(m===curM?" now":"")+'" href="#'+YEAR+'-m'+m+'"'+(cur===m?' aria-current="page"':"")+'>'+m+'월'+(isLocked(YEAR,m)?'<span class="lk" aria-label="잠김">🔒</span>':"")+'</a>';
   }
-  [["compare","월별 비교"],["annual","연간 결산"],["calendar","달력"],["search","검색"],["memo","메모"]].forEach(function(x,i){
+  [["calendar","달력"],["search","검색"],["memo","메모"]].forEach(function(x,i){
     h+='<a class="extra'+(i===0?" xfirst":"")+(cur===x[0]?" on":"")+'" href="#'+YEAR+'-'+x[0]+'"'+(cur===x[0]?' aria-current="page"':"")+'>'+x[1]+'</a>';
   });
-  h+='<a class="extra moreitem'+(cur==="history"?" on":"")+'" href="#" data-more="1" role="button" aria-haspopup="dialog">더보기</a>';
+  h+='<a class="extra moreitem'+(cur==="history"||cur==="compare"||cur==="annual"?" on":"")+'" href="#" data-more="1" role="button" aria-haspopup="dialog">더보기</a>';
   return h;
 }
 function render(){
@@ -2334,11 +2340,13 @@ navEl.addEventListener("click",function(e){
   e.preventDefault();openMore();
 });
 document.getElementById("moreClose").addEventListener("click",moreClose);
-document.querySelector(".morelist").addEventListener("click",function(e){
+moreDlg.addEventListener("click",function(e){
   var b=e.target.closest("[data-m]");if(!b||b.disabled)return;
   var k=b.getAttribute("data-m");moreClose();
   if(k==="year")document.getElementById("yearAdd").click();
   else if(k==="history")location.hash=YEAR+"-history";
+  else if(k==="compare")location.hash=YEAR+"-compare";
+  else if(k==="annual")location.hash=YEAR+"-annual";
   else if(k==="theme")document.getElementById("themeBtn").click();
   else if(k==="backup")openBackup();
   else if(k==="lock"&&isMonth())toggleLock(cur);
