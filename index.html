@@ -369,6 +369,10 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
 /* 항목 글꼴 2단계 축소 */
 .row input,.row select{font-size:12.5px;padding:5px 4px}
 .card-h h3{font-size:13.5px}
+/* 제목은 한 줄로, 버튼이 모자라면 아래 줄로 내려가게 */
+.card-h{flex-wrap:wrap;row-gap:4px}
+.card-h h3{white-space:nowrap}
+.sec-life .card-h h3{white-space:normal}
 .add{font-size:12px}
 .card-f{font-size:13px}
 .card-f span:first-child,.card-f .pct{font-size:12px}
