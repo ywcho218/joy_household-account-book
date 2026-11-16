@@ -529,8 +529,9 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
 
 <dialog id="bk">
   <h2>백업·복원</h2>
-  <p>입력한 내용은 DB에 저장돼요. 아래는 백업용 내용이에요. 예전 버전(브라우저 저장 방식)의 백업을 붙여 넣어 복원할 수도 있어요. 복원하면 선택한 연도의 내용이 모두 바뀌어요.</p>
+  <p>입력한 내용은 DB에 저장돼요. 아래는 백업용 내용이에요(메모·템플릿·예산·잠금·이력도 함께 담겨요). 무료 DB는 자동 백업이 없으니 매달 파일로 받아 두세요. 예전 버전(브라우저 저장 방식)의 백업을 붙여 넣어 복원할 수도 있어요. 복원하면 선택한 연도의 내용이 모두 바뀌어요.</p>
   <textarea id="bkText" spellcheck="false" aria-label="백업 데이터"></textarea>
+  <label class="chk" id="bkExtraLb" hidden style="display:flex;gap:6px;align-items:flex-start;font-size:13px;margin-top:8px"><input type="checkbox" id="bkExtra"> <span>메모·템플릿·예산·잠금·이력도 함께 복원해요 (지금 저장된 것을 모두 이 파일 내용으로 바꿔요. 연도와 상관없는 데이터라 옛 백업으로 복원하면 최근 메모가 사라질 수 있어요)</span></label>
   <div class="msg" id="bkMsg" role="status"></div>
   <div class="dlg-actions">
     <button class="btn primary" type="button" id="bkDown">파일로 내려받기</button>
@@ -1700,6 +1701,8 @@ function exportJSON(){
     ALL.forEach(function(k){o[k]=d[k].map(function(x){return {name:x.name,desc:x.desc,day:x.day,amt:x.amt,payer:x.payer}})});
     out.months[m]=o;
   }
+  /* 연도와 상관없는 데이터(메모·템플릿·예산·잠금·이력)도 같이 담는다 */
+  out.extra={templates:KV.templates,budgets:KV.budgets,memo:KV.memo,locks:KV.locks,history:KV.history};
   return JSON.stringify(out);
 }
 function importMonths(obj){
@@ -1717,7 +1720,7 @@ function importMonths(obj){
   return months;
 }
 function openBackup(){
-  bkText.value=exportJSON();bkMsg.textContent="";bkMsg.className="msg";disarm();
+  bkText.value=exportJSON();bkMsg.textContent="";bkMsg.className="msg";disarm();updateExtraUI();
   if(bk.showModal)bk.showModal();else bk.setAttribute("open","");
 }
 document.getElementById("bkBtn").addEventListener("click",openBackup);
@@ -1737,14 +1740,28 @@ document.getElementById("bkDown").addEventListener("click",function(){
     markBackup();bkMsg.className="msg";bkMsg.textContent=YEAR+"년 백업 파일을 내려받았어요. 다른 연도도 연도를 바꿔서 각각 받아 주세요.";
   }catch(e){bkMsg.className="msg neg";bkMsg.textContent="파일 저장에 실패했어요. '전체 선택'으로 복사해 주세요."}
 });
-bkText.addEventListener("input",disarm);
+var bkExtra=document.getElementById("bkExtra"), bkExtraLb=document.getElementById("bkExtraLb");
+function updateExtraUI(){
+  var has=false;
+  try{var o=JSON.parse(bkText.value);has=!!(o&&o.extra)}catch(e){}
+  bkExtraLb.hidden=!has;if(!has)bkExtra.checked=false;
+}
+bkText.addEventListener("input",function(){disarm();updateExtraUI()});
 bkRestore.addEventListener("click",function(){
-  var months;
-  try{months=importMonths(JSON.parse(bkText.value))}
+  var months, parsed;
+  try{parsed=JSON.parse(bkText.value);months=importMonths(parsed)}
   catch(e){bkMsg.className="msg neg";bkMsg.textContent="복원할 수 없어요. 백업 내용을 처음부터 끝까지 그대로 붙여 넣었는지 확인해 주세요.";disarm();return}
   if(!armed){armed=true;bkRestore.textContent="정말 복원할까요?";bkMsg.className="msg neg";bkMsg.textContent="지금 DB의 "+YEAR+"년 내용이 모두 이 내용으로 바뀌어요.";return}
+  var withExtra=bkExtra.checked&&parsed.extra&&KV.ok;
   snapshot(YEAR+"년을 백업 내용으로 복원했어요.");
-  logH(YEAR+"년을 백업 파일로 복원");
+  logH(YEAR+"년을 백업 파일로 복원"+(withExtra?" (메모·템플릿·예산·잠금·이력 포함)":""));
+  if(withExtra){
+    var ex=parsed.extra;
+    KV.templates=Object.assign({income:[],saving:[],fixed:[]},ex.templates||{});
+    KV.budgets=ex.budgets||{};KV.memo=Array.isArray(ex.memo)?ex.memo:[];
+    KV.locks=ex.locks||{};KV.history=Array.isArray(ex.history)?ex.history:[];
+    ["templates","budgets","memo","locks","history"].forEach(saveKV);
+  }
   for(var m=1;m<=12;m++){
     ALL.forEach(function(k){
       S.months[m][k].forEach(function(x){delete dirty[x.id];dels[x.id]=true});
