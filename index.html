@@ -131,9 +131,9 @@ svg .empty{fill:var(--muted);font-size:14px}
 .add{border:1px dashed var(--line);background:transparent;border-radius:8px;padding:3px 9px;color:var(--muted);cursor:pointer;font-size:13px;white-space:nowrap}
 .add:hover{color:var(--ink);border-color:var(--muted)}
 .row{display:grid;gap:4px;align-items:center;border-bottom:1px solid var(--soft)}
-.r2{grid-template-columns:minmax(0,1fr) 100px 44px}
-.r3{grid-template-columns:minmax(0,1fr) 22px 100px 44px;align-items:center}
-.r4{grid-template-columns:22px 36px minmax(0,1fr) 70px 46px;gap:3px}
+.r2{grid-template-columns:minmax(0,1fr) 100px 30px}
+.r3{grid-template-columns:minmax(0,1fr) 22px 100px 30px;align-items:center}
+.r4{grid-template-columns:22px 36px minmax(0,1fr) 70px 30px;gap:3px}
 .row input,.row select{font:inherit;color:inherit;background:transparent;border:0;border-radius:6px;padding:7px 5px;min-width:0;width:100%}
 .row select{appearance:none;-webkit-appearance:none;text-align:center;padding-left:0;padding-right:0;cursor:pointer}
 .row input:focus,.row select:focus{outline:2px solid var(--accent);outline-offset:-2px;background:var(--soft)}
@@ -156,6 +156,9 @@ dialog textarea{width:100%;height:190px;font:12px/1.4 ui-monospace,Menlo,Consola
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:50;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:14px;display:flex;gap:10px;align-items:center;max-width:calc(100vw - 32px)}
 .toast[hidden]{display:none}
 nav a.xfirst{margin-left:8px}
+.dangerbtn{color:var(--neg);border-color:var(--neg)}
+.mvgrid input{font:inherit;width:100%;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink)}
+.mvgrid input.amt{text-align:right}
 .racts{display:flex;align-items:center;justify-content:flex-end}
 .racts .del{padding:4px 5px}
 .racts .mv{font-size:15px;letter-spacing:-1px}
@@ -420,15 +423,15 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
   .row{padding:2px 0}
 
   /* 수입·저축: 한 줄 */
-  .r2{grid-template-columns:minmax(0,1fr) 124px 72px}
+  .r2{grid-template-columns:minmax(0,1fr) 124px 44px}
   /* 고정지출: 이름 한 줄 + (결제자, 금액) 한 줄 */
-  .r3{grid-template-columns:64px minmax(0,1fr) 72px;grid-template-areas:"name name name" "payer amt del";gap:0 4px}
+  .r3{grid-template-columns:64px minmax(0,1fr) 44px;grid-template-areas:"name name name" "payer amt del";gap:0 4px}
   .r3 input[data-f="name"]{grid-area:name}
   .r3 .pay{grid-area:payer;align-self:center;justify-self:start;margin:2px 0 6px}
   .r3 .amt{grid-area:amt;margin:2px 0 6px}
   .r3 .racts{grid-area:del}
   /* 변동지출: 내용 한 줄 + 금액 한 줄 (내용이 잘리지 않게) */
-  .r4{grid-template-columns:34px 56px minmax(0,1fr) 72px;grid-template-areas:"pay day desc desc" "pay day amt del";gap:0 4px}
+  .r4{grid-template-columns:34px 56px minmax(0,1fr) 44px;grid-template-areas:"pay day desc desc" "pay day amt del";gap:0 4px}
   .r4 .pay{grid-area:pay;align-self:center;justify-self:center}
   .r4 .dwrap{grid-area:day;align-self:center}
   .r4 input[data-f="desc"]{grid-area:desc}
@@ -484,15 +487,24 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
 </dialog>
 
 <dialog id="mv">
-  <h2>항목 이동·복사</h2>
+  <h2>항목 수정</h2>
   <p id="mvInfo"></p>
+  <div class="mvgrid">
+    <label for="mvText" id="mvTextLb">항목</label><input id="mvText" autocomplete="off">
+    <label for="mvAmt">금액</label><input id="mvAmt" class="amt" inputmode="numeric" placeholder="0">
+    <label for="mvDay" id="mvDayLb">날짜(일)</label><input id="mvDay" type="number" min="1" max="31" placeholder="비워도 돼요">
+    <label for="mvPayer" id="mvPayerLb">결제자</label><select id="mvPayer"><option value="">-</option><option value="옹">옹</option><option value="답">답</option></select>
+  </div>
+  <div class="dlg-actions"><button class="btn primary" type="button" id="mvSave">수정 저장</button></div>
+  <div class="kvsub">다른 곳으로 보내기 (복사는 같은 자리에도 돼요)</div>
   <div class="mvgrid">
     <label for="mvSec">구분</label><select id="mvSec"></select>
     <label for="mvMonth">달</label><select id="mvMonth"></select>
   </div>
   <div class="dlg-actions">
-    <button class="btn primary" type="button" id="mvMove">이동</button>
+    <button class="btn" type="button" id="mvMove">이동</button>
     <button class="btn" type="button" id="mvCopy">복사</button>
+    <button class="btn dangerbtn" type="button" id="mvDel">삭제</button>
     <button class="btn" type="button" id="mvClose">닫기</button>
   </div>
 </dialog>
@@ -747,7 +759,7 @@ function dayPicker(x){
     +'<input type="date" class="dinput" tabindex="-1" aria-hidden="true" min="'+y+'-'+mm+'-01" max="'+y+'-'+mm+'-'+("0"+last).slice(-2)+'" value="'+y+'-'+mm+'-'+("0"+def).slice(-2)+'"></span>';
 }
 function rowHTML(sec,x){
-  var del='<span class="racts"><button class="del mv" type="button" data-act="rowmenu" aria-label="이동·복사" title="이동·복사">⋯</button><button class="del" type="button" data-act="del" aria-label="행 삭제">×</button></span>';
+  var del='<span class="racts"><button class="del mv" type="button" data-act="rowmenu" aria-label="수정·삭제·복사" title="수정·삭제·복사">⋯</button></span>';
   var amt='<input class="amt" data-f="amt" inputmode="'+AMT_MODE+'" placeholder="0" aria-label="금액" value="'+fmtIn(x.amt)+'">';
   var payer='<select data-f="payer" aria-label="결제자">'+["","옹","답"].map(function(p){return '<option value="'+p+'"'+(x.payer===p?" selected":"")+'>'+(p||"-")+'</option>'}).join("")+'</select>';
   var name='<input data-f="name" list="dl-'+sec+'" autocomplete="off" placeholder="항목" aria-label="항목" value="'+esc(x.name)+'">';
@@ -1279,22 +1291,51 @@ document.getElementById("pstOk").addEventListener("click",function(){
 
 /* ---------- 항목 이동·복사·정렬 ---------- */
 var mvRow=null, mvDlg=document.getElementById("mv"), mvSecSel=document.getElementById("mvSec"), mvMonSel=document.getElementById("mvMonth");
+function mvClose(){if(mvDlg.close)mvDlg.close();else mvDlg.removeAttribute("open")}
+function mvItem(){return mvRow?S.months[cur][mvRow.sec].filter(function(x){return x.id===mvRow.id})[0]:null}
 function mvOpen(row){
   if(!row)return;
   var sec=row.getAttribute("data-sec"), id=row.getAttribute("data-id");
   var it=S.months[cur][sec].filter(function(x){return x.id===id})[0];if(!it)return;
   mvRow={sec:sec,id:id};
-  document.getElementById("mvInfo").textContent=cur+"월 "+SECS[sec]+" · "+itemLabel(sec,it);
-  mvSecSel.innerHTML=(isVar(sec)?VARS:[sec]).map(function(k){return '<option value="'+k+'"'+(k===sec?" selected":"")+'>'+SECS[k]+'</option>'}).join("");
+  var v=isVar(sec);
+  document.getElementById("mvInfo").textContent=cur+"월 "+SECS[sec];
+  document.getElementById("mvTextLb").textContent=v?"내용":"항목";
+  document.getElementById("mvText").value=(v?it.desc:it.name)||"";
+  var am=document.getElementById("mvAmt");am.inputMode=AMT_MODE;am.value=fmtIn(it.amt);
+  var dm=/(\d+)/.exec(it.day||"");document.getElementById("mvDay").value=dm?dm[1]:"";
+  document.getElementById("mvPayer").value=it.payer||"";
+  var hasPayer=(sec==="fixed"||v);
+  ["mvDay","mvDayLb"].forEach(function(k){document.getElementById(k).hidden=!v});
+  ["mvPayer","mvPayerLb"].forEach(function(k){document.getElementById(k).hidden=!hasPayer});
+  mvSecSel.innerHTML=(v?VARS:[sec]).map(function(k){return '<option value="'+k+'"'+(k===sec?" selected":"")+'>'+SECS[k]+'</option>'}).join("");
   var o="";for(var m=1;m<=12;m++)o+='<option value="'+m+'"'+(m===cur?" selected":"")+'>'+m+'월'+(isLocked(YEAR,m)?" 🔒":"")+'</option>';
   mvMonSel.innerHTML=o;
   if(mvDlg.showModal)mvDlg.showModal();else mvDlg.setAttribute("open","");
 }
+document.getElementById("mvAmt").addEventListener("input",function(e){parseAmt(e.target)});
+document.getElementById("mvSave").addEventListener("click",function(){
+  var it=mvItem();if(!it)return;
+  var v=isVar(mvRow.sec), txt=document.getElementById("mvText").value;
+  if(v)it.desc=txt;else it.name=txt;
+  it.amt=parseAmt(document.getElementById("mvAmt"));
+  if(v){var dd=parseInt(document.getElementById("mvDay").value,10);it.day=(dd>=1&&dd<=31)?dd+"일":""}
+  if(mvRow.sec==="fixed"||v)it.payer=document.getElementById("mvPayer").value;
+  markDirty(it.id);mvClose();render();
+});
+document.getElementById("mvDel").addEventListener("click",function(){
+  var it=mvItem();if(!it)return;
+  if(!confirm("지우시겠습니까?"))return;
+  snapshot("항목을 지웠어요.");
+  logH(cur+"월 "+SECS[mvRow.sec]+" 삭제: "+itemLabel(mvRow.sec,it));
+  var sec=mvRow.sec, id=it.id;
+  S.months[cur][sec]=S.months[cur][sec].filter(function(x){return x.id!==id});
+  delete dirty[id];dels[id]=true;schedule();mvClose();render();
+});
 function mvApply(copy){
-  if(!mvRow)return;
+  var src=mvItem();if(!src)return;
   var tsec=mvSecSel.value, tm=+mvMonSel.value;
-  var src=S.months[cur][mvRow.sec].filter(function(x){return x.id===mvRow.id})[0];if(!src)return;
-  if(tm===cur&&tsec===mvRow.sec){alert("같은 위치예요. 다른 구분이나 달을 골라 주세요.");return}
+  if(!copy&&tm===cur&&tsec===mvRow.sec){alert("같은 위치예요. 다른 구분이나 달을 골라 주세요.");return}
   if(isLocked(YEAR,tm)){alert(tm+"월은 잠겨 있어요. 잠금을 풀고 다시 해 주세요.");return}
   var label=itemLabel(mvRow.sec,src), fromS=mvRow.sec, fromM=cur;
   snapshot("항목을 "+(copy?"복사":"이동")+"했어요 ("+tm+"월 "+SECS[tsec]+").");
@@ -1305,12 +1346,11 @@ function mvApply(copy){
     src._m=tm;src._s=tsec;src.order=tgt.length;tgt.push(src);dirty[src.id]=true;
   }
   logH(label+" → "+tm+"월 "+SECS[tsec]+" ("+(copy?"복사":"이동")+", 원래 "+fromM+"월 "+SECS[fromS]+")");
-  schedule();render();
-  if(mvDlg.close)mvDlg.close();else mvDlg.removeAttribute("open");
+  schedule();render();mvClose();
 }
 document.getElementById("mvMove").addEventListener("click",function(){mvApply(false)});
 document.getElementById("mvCopy").addEventListener("click",function(){mvApply(true)});
-document.getElementById("mvClose").addEventListener("click",function(){if(mvDlg.close)mvDlg.close();else mvDlg.removeAttribute("open")});
+document.getElementById("mvClose").addEventListener("click",mvClose);
 function sortDay(sec){
   var d=S.months[cur][sec];if(d.length<2)return;
   snapshot(cur+"월 "+SECS[sec]+"을 날짜순으로 정렬했어요.");
@@ -1696,14 +1736,6 @@ main.addEventListener("click",function(e){
       }
     }else if(act==="copysec"){
       copySection(b.getAttribute("data-sec"),cur);
-    }else if(act==="del"){
-      if(!confirm("지우시겠습니까?"))return;
-      snapshot("항목을 지웠어요.");
-      var row=b.closest("[data-id]"), sc=row.getAttribute("data-sec"), id=row.getAttribute("data-id");
-      var gone=d[sc].filter(function(x){return x.id===id})[0];
-      if(gone)logH(cur+"월 "+SECS[sc]+" 삭제: "+itemLabel(sc,gone));
-      d[sc]=d[sc].filter(function(x){return x.id!==id});
-      delete dirty[id];dels[id]=true;schedule();render();
     }
     return;
   }
