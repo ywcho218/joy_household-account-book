@@ -1,0 +1,20 @@
+# 무료 Supabase 프로젝트가 한동안 접속이 없어 일시정지되지 않도록, 주 2회 DB에 조회 요청을 보냅니다.
+# 요청이 실패하면(프로젝트가 멈췄거나 장애) 이 작업이 실패로 표시되고 GitHub가 메일로 알려 줍니다.
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: "17 3 * * 1,4"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Supabase
+        run: |
+          URL="https://tkfbzihbitroqqvvylhj.supabase.co/rest/v1/households?select=id&limit=1"
+          KEY="sb_publishable_jWtC3nblSCcKTyV-p8lTkQ_n_X0JJnH"
+          code=$(curl -s -o /dev/null -w "%{http_code}" -H "apikey: $KEY" -H "Authorization: Bearer $KEY" "$URL")
+          echo "Supabase status: $code"
+          test "$code" = "200"
