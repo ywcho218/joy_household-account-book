@@ -237,6 +237,14 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
 /* 날짜: 달력으로 선택 */
 .dwrap{position:relative;display:block;min-width:0}
 .dbtn{width:100%;border:0;background:transparent;color:inherit;font:inherit;font-size:13px;padding:6px 2px;text-align:left;cursor:pointer;border-radius:6px;white-space:nowrap}
+.settle{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.settle .who{padding:12px 14px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.settle .who+.who{border-left:1px solid var(--line)}
+.settle .lb{color:var(--muted);font-size:12px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.settle .lb i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--c-fixed)}
+.settle .d .lb i{background:var(--c-life)}
+.settle .v{font-size:21px;font-weight:600;letter-spacing:-.01em;margin-top:2px}
+.settle .sub{color:var(--muted);font-size:12px}
 .card-btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .dbtn:hover{background:var(--soft)}
 .dbtn.empty{color:var(--muted);opacity:.7}
@@ -267,6 +275,9 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
   .card,.z3{grid-column:1/-1}
   .stat{order:-1;padding:12px}
   .stat.key{order:-2;grid-column:1/-1}
+  .settle{order:-1;grid-column:1/-1}
+  .settle .v{font-size:20px}
+  .settle .lb,.settle .sub{font-size:13px}
   .stat.key .v{font-size:26px}
   .stat .v{font-size:19px}
   .stat label,.stat .lb{font-size:13px;min-height:0;margin-bottom:2px}
@@ -538,7 +549,7 @@ function cardHTML(sec,d){
   var foot=sec==="income"
     ?'<span>합계</span><span data-bind="inc"></span>'
     :'<span>합계</span><span><span class="pct" data-bind="'+k+'P"></span><span data-bind="'+k+'"></span></span>';
-  var copyBtn=sec==="fixed"?'<button class="add" type="button" data-act="copyfix" title="전월 고정지출을 이번 달로 복사">전월 복사</button>':"";
+  var copyBtn=(sec==="income"||sec==="saving"||sec==="fixed")?'<button class="add" type="button" data-act="copysec" data-sec="'+sec+'" title="전월 '+SECS[sec]+'을(를) 이번 달로 복사">전월 복사</button>':"";
   return '<section class="card sec-'+sec+'"><div class="card-h"><h3>'+SECS[sec]+'</h3><span class="card-btns">'+copyBtn+'<button class="add" type="button" data-act="add" data-sec="'+sec+'">+ 추가</button></span></div>'
     +'<div class="rows">'+d[sec].map(function(x){return rowHTML(sec,x)}).join("")+'</div>'
     +'<div class="card-f">'+foot+'</div></section>';
@@ -547,40 +558,43 @@ function monthView(m){
   var d=S.months[m];
   var spend='<div class="stat"><span class="lb">이달의 지출</span><div class="v"><span data-bind="exp"></span><small data-bind="expP"></small></div></div>';
   var room='<div class="stat key"><span class="lb">이달의 비상금<br>수입 − 저축 − 지출</span><div class="v" data-bind="room"></div></div>';
-  var sendO='<div class="stat"><span class="lb">옹우한테 보내준 돈<br>옹 결제 항목 합계</span><div class="v" data-bind="sendO"></div></div>';
-  var sendD='<div class="stat"><span class="lb">답니한테 보내준 돈<br>답 결제 항목 합계</span><div class="v" data-bind="sendD"></div></div>';
+  var settle='<section class="settle" aria-label="결제자별 합계">'
+    +'<div class="who o"><span class="lb"><i></i>옹우한테 보내준 돈</span><div class="v" data-bind="sendO"></div><span class="sub">옹 결제 항목 합계</span></div>'
+    +'<div class="who d"><span class="lb"><i></i>답니한테 보내준 돈</span><div class="v" data-bind="sendD"></div><span class="sub">답 결제 항목 합계</span></div></section>';
   var avail='<div class="stat"><label for="top-avail">가용금액 합계</label><input id="top-avail" class="amt" data-top="avail" inputmode="numeric" placeholder="0" value="'+fmtIn(d.avail)+'"></div>';
   return '<div class="pagehead"><div><h1>'+YEAR+'년 '+m+'월 〈조이쀼의 가계부〉</h1></div>'
     +'<div class="pager"><button class="btn" type="button" data-go="m'+(m-1)+'"'+(m===1?" disabled":"")+'>이전 달</button><button class="btn" type="button" data-go="m'+(m+1)+'"'+(m===12?" disabled":"")+'>다음 달</button></div></div>'
     +'<div class="sheetwrap"><div class="sheet">'
-      +'<div class="zone z1">'+cardHTML("income",d)+cardHTML("saving",d)+spend+room+sendO+'</div>'
-      +'<div class="zone z2">'+cardHTML("fixed",d)+avail+sendD+'</div>'
+      +'<div class="zone z1">'+cardHTML("income",d)+cardHTML("saving",d)+spend+room+'</div>'
+      +'<div class="zone z2">'+cardHTML("fixed",d)+avail+settle+'</div>'
       +'<div class="z3">'+VARS.map(function(k){return cardHTML(k,d)}).join("")+'</div>'
     +'</div></div>';
 }
-/* 전월 고정지출 복사: 항목명·결제자·금액을 그대로 가져온다. 1월은 전년 12월에서 가져온다. */
-async function copyFixed(m){
-  var src, prevLabel=(m>1?m-1:12)+"월";
+/* 전월 복사(수입·저축·고정지출): 항목명·결제자·금액을 그대로 가져온다. 1월은 전년 12월에서 가져온다.
+   항목명 안의 전월 숫자("10월 대출 이자상환", "청년미래적금 10월")는 이번 달 숫자로 바꾼다. */
+async function copySection(sec,m){
+  var src, pm=(m>1?m-1:12), prevLabel=pm+"월", sname=SECS[sec];
+  var monthRe=new RegExp("(^|[^0-9])"+pm+"월","g");
   try{
     if(m>1){
-      src=S.months[m-1].fixed.map(function(x){return {name:x.name,payer:x.payer,amt:+x.amt||0}});
+      src=S.months[m-1][sec].map(function(x){return {name:x.name,payer:x.payer,amt:+x.amt||0}});
     }else{
-      var r=await sb.from("entries").select("label,payer,amount").eq("household_id",HH).eq("year",YEAR-1).eq("month",12).eq("section","fixed")
+      var r=await sb.from("entries").select("label,payer,amount").eq("household_id",HH).eq("year",YEAR-1).eq("month",12).eq("section",sec)
         .order("sort_order",{ascending:true}).order("created_at",{ascending:true});
       if(r.error)throw r.error;
       src=r.data.map(function(x){return {name:x.label||"",payer:x.payer||"",amt:Number(x.amount)||0}});
     }
-  }catch(e){alert("전월 고정지출을 불러오지 못했어요.");return}
+  }catch(e){alert("전월 "+sname+" 내용을 불러오지 못했어요.");return}
   if(cur!==m)return;
-  if(!src.length){alert((m>1?prevLabel:(YEAR-1)+"년 "+prevLabel)+"에 고정지출이 없어요.");return}
+  if(!src.length){alert((m>1?prevLabel:(YEAR-1)+"년 "+prevLabel)+"에 "+sname+" 항목이 없어요.");return}
   var d=S.months[m];
-  var msg=d.fixed.length
-    ?m+"월 고정지출 "+d.fixed.length+"개를 지우고 "+prevLabel+" 내용("+src.length+"개)으로 바꿀까요?"
-    :prevLabel+" 고정지출 "+src.length+"개를 "+m+"월에 복사할까요?";
+  var msg=d[sec].length
+    ?m+"월 "+sname+" "+d[sec].length+"개를 지우고 "+prevLabel+" 내용("+src.length+"개)으로 바꿀까요?"
+    :prevLabel+" "+sname+" "+src.length+"개를 "+m+"월에 복사할까요?";
   if(!confirm(msg))return;
-  d.fixed.forEach(function(x){delete dirty[x.id];dels[x.id]=true});
-  d.fixed=src.map(function(s,i){
-    var it=mkItem(m,"fixed",{name:s.name.replace(/^\d{1,2}월(?=\s*대출)/,m+"월"),payer:s.payer,amt:s.amt,order:i});
+  d[sec].forEach(function(x){delete dirty[x.id];dels[x.id]=true});
+  d[sec]=src.map(function(s,i){
+    var it=mkItem(m,sec,{name:s.name.replace(monthRe,function(_,p){return p+m+"월"}),payer:s.payer,amt:s.amt,order:i});
     dirty[it.id]=true;return it;
   });
   schedule();render();
@@ -871,8 +885,8 @@ main.addEventListener("click",function(e){
         b.textContent=pit.payer||"-";b.setAttribute("data-p",pit.payer);
         markDirty(pit.id);refresh();
       }
-    }else if(act==="copyfix"){
-      copyFixed(cur);
+    }else if(act==="copysec"){
+      copySection(b.getAttribute("data-sec"),cur);
     }else if(act==="del"){
       var row=b.closest("[data-id]"), sc=row.getAttribute("data-sec"), id=row.getAttribute("data-id");
       d[sc]=d[sc].filter(function(x){return x.id!==id});
