@@ -1510,7 +1510,9 @@ function tagSum(m,tag){
 }
 
 /* ---------- 빠른 추가: 자주 쓴 내용을 버튼으로 ---------- */
+var QUICK_ON=false; /* 빠른 추가 버튼 표시 여부 (true로 바꾸면 다시 나타나요) */
 function quickHTML(sec){
+  if(!QUICK_ON)return "";
   var cnt={};
   for(var m=1;m<=12;m++)S.months[m][sec].forEach(function(x){
     var s=(x.desc||"").replace(/^\[제외\]\s*/,"").trim();if(s)cnt[s]=(cnt[s]||0)+1;
