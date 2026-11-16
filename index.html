@@ -237,9 +237,82 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
 /* 날짜: 달력으로 선택 */
 .dwrap{position:relative;display:block;min-width:0}
 .dbtn{width:100%;border:0;background:transparent;color:inherit;font:inherit;font-size:13px;padding:6px 2px;text-align:left;cursor:pointer;border-radius:6px;white-space:nowrap}
+.card-btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .dbtn:hover{background:var(--soft)}
 .dbtn.empty{color:var(--muted);opacity:.7}
 .row .dinput{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;pointer-events:none;border:0;padding:0}
+
+/* ===== 모바일 가시성 개선 (폭 720px 이하) ===== */
+@media (max-width:720px){
+  body{font-size:16px}
+  .app{padding:12px 12px 48px;grid-template-columns:minmax(0,1fr)}
+  .rail,nav,main{min-width:0}
+  /* 헤더: 제목+연도 한 줄, 월 메뉴는 그 아래 */
+  .rail{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+  .brand{display:flex;align-items:baseline;margin:0;font-size:20px}
+  .brand br{display:none}
+  .yearbox{margin:0 0 0 auto}
+  .yearsel,.btn{min-height:40px}
+  nav{flex:1 1 100%;gap:8px;padding-bottom:8px}
+  nav a{padding:9px 15px;font-size:15px;min-height:40px}
+  .tools{flex:1 1 100%;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tools .btn{margin:0}
+  .sync{margin:0 auto 0 0}
+  .pagehead h1{font-size:22px}
+  .pager .btn{padding:8px 14px}
+
+  /* 핵심 수치(비상금·지출)를 맨 위에 2열로 */
+  .sheet{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .zone{display:contents}
+  .card,.z3{grid-column:1/-1}
+  .stat{order:-1;padding:12px}
+  .stat.key{order:-2;grid-column:1/-1}
+  .stat.key .v{font-size:26px}
+  .stat .v{font-size:19px}
+  .stat label,.stat .lb{font-size:13px;min-height:0;margin-bottom:2px}
+  .stat input{font-size:19px}
+
+  /* 카드 */
+  .card{padding:12px 12px 10px}
+  .card-h{margin-bottom:8px}
+  .card-h h3{font-size:17px}
+  .add{font-size:14px;padding:8px 12px;min-height:38px}
+  .card-f{font-size:16px;margin-top:10px}
+  .card-f span:first-child,.card-f .pct{font-size:13px}
+
+  /* 입력 행: 16px 글꼴(iOS 확대 방지), 넉넉한 터치 영역 */
+  .row input,.row select{font-size:16px;padding:10px 6px;min-height:44px}
+  .row .amt{font-weight:500}
+  .del{font-size:22px;padding:6px;min-width:34px;min-height:44px}
+  .pay{width:30px;height:30px;font-size:13px}
+  .dbtn{font-size:15px;padding:10px 2px;min-height:44px}
+  .row{padding:2px 0}
+
+  /* 수입·저축: 한 줄 */
+  .r2{grid-template-columns:minmax(0,1fr) 124px 34px}
+  /* 고정지출: 이름 한 줄 + (결제자, 금액) 한 줄 */
+  .r3{grid-template-columns:64px minmax(0,1fr) 34px;grid-template-areas:"name name del" "payer amt amt";gap:0 4px}
+  .r3 input[data-f="name"]{grid-area:name}
+  .r3 select{grid-area:payer;border:1px solid var(--line);background:var(--soft);margin:2px 0 6px}
+  .r3 .amt{grid-area:amt;margin:2px 0 6px}
+  .r3 .del{grid-area:del}
+  /* 변동지출: 내용 한 줄 + 금액 한 줄 (내용이 잘리지 않게) */
+  .r4{grid-template-columns:34px 56px minmax(0,1fr) 34px;grid-template-areas:"pay day desc del" "pay day amt del";gap:0 4px}
+  .r4 .pay{grid-area:pay;align-self:center;justify-self:center}
+  .r4 .dwrap{grid-area:day;align-self:center}
+  .r4 input[data-f="desc"]{grid-area:desc}
+  .r4 .amt{grid-area:amt;margin-bottom:6px}
+  .r4 .del{grid-area:del;align-self:center}
+
+  /* 종합 현황 */
+  .kpis{margin-bottom:14px}
+  .kpi dd{font-size:21px}
+  .panel{padding:14px 12px 10px}
+  .legend{font-size:14px;gap:6px 14px}
+  .sharelist{font-size:15px}
+  .tbl{min-width:760px}
+  .tbl td,.tbl th{padding:10px 9px;font-size:14px}
+}
 </style>
 </head>
 <body>
@@ -465,7 +538,8 @@ function cardHTML(sec,d){
   var foot=sec==="income"
     ?'<span>합계</span><span data-bind="inc"></span>'
     :'<span>합계</span><span><span class="pct" data-bind="'+k+'P"></span><span data-bind="'+k+'"></span></span>';
-  return '<section class="card sec-'+sec+'"><div class="card-h"><h3>'+SECS[sec]+'</h3><button class="add" type="button" data-act="add" data-sec="'+sec+'">+ 추가</button></div>'
+  var copyBtn=sec==="fixed"?'<button class="add" type="button" data-act="copyfix" title="전월 고정지출을 이번 달로 복사">전월 복사</button>':"";
+  return '<section class="card sec-'+sec+'"><div class="card-h"><h3>'+SECS[sec]+'</h3><span class="card-btns">'+copyBtn+'<button class="add" type="button" data-act="add" data-sec="'+sec+'">+ 추가</button></span></div>'
     +'<div class="rows">'+d[sec].map(function(x){return rowHTML(sec,x)}).join("")+'</div>'
     +'<div class="card-f">'+foot+'</div></section>';
 }
@@ -484,6 +558,33 @@ function monthView(m){
       +'<div class="z3">'+VARS.map(function(k){return cardHTML(k,d)}).join("")+'</div>'
     +'</div></div>';
 }
+/* 전월 고정지출 복사: 항목명·결제자·금액을 그대로 가져온다. 1월은 전년 12월에서 가져온다. */
+async function copyFixed(m){
+  var src, prevLabel=(m>1?m-1:12)+"월";
+  try{
+    if(m>1){
+      src=S.months[m-1].fixed.map(function(x){return {name:x.name,payer:x.payer,amt:+x.amt||0}});
+    }else{
+      var r=await sb.from("entries").select("label,payer,amount").eq("household_id",HH).eq("year",YEAR-1).eq("month",12).eq("section","fixed")
+        .order("sort_order",{ascending:true}).order("created_at",{ascending:true});
+      if(r.error)throw r.error;
+      src=r.data.map(function(x){return {name:x.label||"",payer:x.payer||"",amt:Number(x.amount)||0}});
+    }
+  }catch(e){alert("전월 고정지출을 불러오지 못했어요.");return}
+  if(cur!==m)return;
+  if(!src.length){alert((m>1?prevLabel:(YEAR-1)+"년 "+prevLabel)+"에 고정지출이 없어요.");return}
+  var d=S.months[m];
+  var msg=d.fixed.length
+    ?m+"월 고정지출 "+d.fixed.length+"개를 지우고 "+prevLabel+" 내용("+src.length+"개)으로 바꿀까요?"
+    :prevLabel+" 고정지출 "+src.length+"개를 "+m+"월에 복사할까요?";
+  if(!confirm(msg))return;
+  d.fixed.forEach(function(x){delete dirty[x.id];dels[x.id]=true});
+  d.fixed=src.map(function(s,i){
+    var it=mkItem(m,"fixed",{name:s.name.replace(/^\d{1,2}월(?=\s*대출)/,m+"월"),payer:s.payer,amt:s.amt,order:i});
+    dirty[it.id]=true;return it;
+  });
+  schedule();render();
+}
 function refresh(){
   var r=calc(cur), inc=r.inc, map={};
   ["inc","sav","fix","food","living","life","etc","exp","room","sendO","sendD"].forEach(function(k){map[k]=won(r[k])});
@@ -498,7 +599,8 @@ function refresh(){
 
 /* ---------- overview ---------- */
 function chartSVG(R){
-  var W=760,H=300,L=54,Rr=12,T=14,B=30,pw=W-L-Rr,ph=H-T-B;
+  var mob=window.innerWidth<=560;
+  var W=mob?380:760,H=mob?250:300,L=mob?50:54,Rr=12,T=14,B=30,pw=W-L-Rr,ph=H-T-B;
   var max=Math.max.apply(null,R.map(function(r){return Math.max(r.exp,r.inc)}));
   var empty=max===0; if(empty)max=1000000;
   var raw=max/4, mag=Math.pow(10,Math.floor(Math.log10(raw))), n=raw/mag;
@@ -769,6 +871,8 @@ main.addEventListener("click",function(e){
         b.textContent=pit.payer||"-";b.setAttribute("data-p",pit.payer);
         markDirty(pit.id);refresh();
       }
+    }else if(act==="copyfix"){
+      copyFixed(cur);
     }else if(act==="del"){
       var row=b.closest("[data-id]"), sc=row.getAttribute("data-sec"), id=row.getAttribute("data-id");
       d[sc]=d[sc].filter(function(x){return x.id!==id});
