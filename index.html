@@ -124,7 +124,7 @@ svg .empty{fill:var(--muted);font-size:14px}
 .row{display:grid;gap:4px;align-items:center;border-bottom:1px solid var(--soft)}
 .r2{grid-template-columns:minmax(0,1fr) 112px 22px}
 .r3{grid-template-columns:minmax(0,1fr) 48px 108px 22px}
-.r4{grid-template-columns:22px 30px minmax(0,1fr) 70px 14px;gap:3px}
+.r4{grid-template-columns:22px 36px minmax(0,1fr) 70px 14px;gap:3px}
 .row input,.row select{font:inherit;color:inherit;background:transparent;border:0;border-radius:6px;padding:7px 5px;min-width:0;width:100%}
 .row select{appearance:none;-webkit-appearance:none;text-align:center;padding-left:0;padding-right:0;cursor:pointer}
 .row input:focus,.row select:focus{outline:2px solid var(--accent);outline-offset:-2px;background:var(--soft)}
@@ -232,6 +232,13 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
 .card-f{font-size:13px}
 .card-f span:first-child,.card-f .pct{font-size:12px}
 .stat label,.stat .lb{font-size:12px}
+
+/* 날짜: 달력으로 선택 */
+.dwrap{position:relative;display:block;min-width:0}
+.dbtn{width:100%;border:0;background:transparent;color:inherit;font:inherit;font-size:13px;padding:6px 2px;text-align:left;cursor:pointer;border-radius:6px;white-space:nowrap}
+.dbtn:hover{background:var(--soft)}
+.dbtn.empty{color:var(--muted);opacity:.7}
+.row .dinput{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;pointer-events:none;border:0;padding:0}
 </style>
 </head>
 <body>
@@ -430,6 +437,13 @@ function wasSeeded(){try{return localStorage.getItem(seededKey())==="1"}catch(e)
 function setSeeded(){try{localStorage.setItem(seededKey(),"1")}catch(e){}}
 
 /* ---------- month view ---------- */
+function dayPicker(x){
+  var m=x._m||1, y=x._y||YEAR, last=new Date(y,m,0).getDate(), mm=("0"+m).slice(-2);
+  var dn=parseInt(x.day,10), has=dn>=1&&dn<=last;
+  var def=has?dn:((NOW.getFullYear()===y&&NOW.getMonth()+1===m)?NOW.getDate():1);
+  return '<span class="dwrap"><button type="button" class="dbtn'+(x.day?"":" empty")+'" data-act="pick" aria-label="날짜 선택">'+(x.day?esc(x.day):"날짜")+'</button>'
+    +'<input type="date" class="dinput" tabindex="-1" aria-hidden="true" min="'+y+'-'+mm+'-01" max="'+y+'-'+mm+'-'+("0"+last).slice(-2)+'" value="'+y+'-'+mm+'-'+("0"+def).slice(-2)+'"></span>';
+}
 function rowHTML(sec,x){
   var del='<button class="del" type="button" data-act="del" aria-label="행 삭제">×</button>';
   var amt='<input class="amt" data-f="amt" inputmode="numeric" placeholder="0" aria-label="금액" value="'+fmtIn(x.amt)+'">';
@@ -439,7 +453,7 @@ function rowHTML(sec,x){
   var h;
   if(sec==="income"||sec==="saving"){h='<div class="row r2" data-id="'+x.id+'" data-sec="'+sec+'">'+name+amt+del+'</div>'}
   else if(sec==="fixed"){h='<div class="row r3" data-id="'+x.id+'" data-sec="'+sec+'">'+name+payer+amt+del+'</div>'}
-  else{h='<div class="row r4" data-id="'+x.id+'" data-sec="'+sec+'">'+paybtn+'<input data-f="day" placeholder="일" aria-label="날짜" value="'+esc(x.day)+'"><input data-f="desc" placeholder="내용" aria-label="내용" value="'+esc(x.desc)+'">'+amt+del+'</div>'}
+  else{h='<div class="row r4" data-id="'+x.id+'" data-sec="'+sec+'">'+paybtn+''+dayPicker(x)+'<input data-f="desc" placeholder="내용" aria-label="내용" value="'+esc(x.desc)+'">'+amt+del+'</div>'}
   return h;
 }
 function keyOf(sec){return sec==="income"?"inc":sec==="saving"?"sav":sec==="fixed"?"fix":sec}
@@ -459,12 +473,11 @@ function monthView(m){
   var sendO='<div class="stat"><span class="lb">옹우한테 보내준 돈<br>옹 결제 항목 합계</span><div class="v" data-bind="sendO"></div></div>';
   var sendD='<div class="stat"><span class="lb">답니한테 보내준 돈<br>답 결제 항목 합계</span><div class="v" data-bind="sendD"></div></div>';
   var avail='<div class="stat"><label for="top-avail">가용금액 합계</label><input id="top-avail" class="amt" data-top="avail" inputmode="numeric" placeholder="0" value="'+fmtIn(d.avail)+'"></div>';
-  var baby='<div class="stat"><label for="top-baby">하꿍이 저축 금액 합계<br>(25일 기준)</label><input id="top-baby" class="amt" data-top="baby" inputmode="numeric" placeholder="0" value="'+fmtIn(d.baby)+'"></div>';
   return '<div class="pagehead"><div><h1>'+YEAR+'년 '+m+'월 〈조이쀼의 가계부〉</h1></div>'
     +'<div class="pager"><button class="btn" type="button" data-go="m'+(m-1)+'"'+(m===1?" disabled":"")+'>이전 달</button><button class="btn" type="button" data-go="m'+(m+1)+'"'+(m===12?" disabled":"")+'>다음 달</button></div></div>'
     +'<div class="sheetwrap"><div class="sheet">'
       +'<div class="zone z1">'+cardHTML("income",d)+cardHTML("saving",d)+spend+room+sendO+'</div>'
-      +'<div class="zone z2">'+cardHTML("fixed",d)+'<div class="pair">'+avail+baby+'</div>'+sendD+'</div>'
+      +'<div class="zone z2">'+cardHTML("fixed",d)+avail+sendD+'</div>'
       +'<div class="z3">'+VARS.map(function(k){return cardHTML(k,d)}).join("")+'</div>'
     +'</div></div>';
 }
@@ -737,9 +750,13 @@ main.addEventListener("click",function(e){
       var sec=b.getAttribute("data-sec");
       var order=d[sec].reduce(function(mx,x){return Math.max(mx,x.order||0)},-1)+1;
       var it=mkItem(cur,sec,{order:order});
+      if(isVar(sec)&&NOW.getFullYear()===YEAR&&NOW.getMonth()+1===cur)it.day=NOW.getDate()+"일";
       d[sec].push(it);markDirty(it.id);render();
-      var first=main.querySelector('[data-id="'+it.id+'"] input');
+      var first=main.querySelector('[data-id="'+it.id+'"] input[data-f="desc"],[data-id="'+it.id+'"] input[data-f="name"]');
       if(first)first.focus();
+    }else if(act==="pick"){
+      var inp=b.closest(".dwrap").querySelector(".dinput");
+      try{if(inp.showPicker)inp.showPicker();else{inp.focus();inp.click()}}catch(err){inp.focus();inp.click()}
     }else if(act==="pay"){
       var prow=b.closest("[data-id]"), psc=prow.getAttribute("data-sec"), pid=prow.getAttribute("data-id");
       var pit=d[psc].filter(function(x){return x.id===pid})[0];
@@ -758,6 +775,18 @@ main.addEventListener("click",function(e){
   }
   var g=e.target.closest("[data-go]");
   if(g&&!g.disabled){location.hash=YEAR+"-"+g.getAttribute("data-go")}
+});
+main.addEventListener("change",function(e){
+  var t=e.target;
+  if(!t.classList.contains("dinput"))return;
+  var row=t.closest("[data-id]"), mt=/^\d{4}-\d{2}-(\d{2})$/.exec(t.value);
+  if(!row||!mt)return;
+  var item=S.months[cur][row.getAttribute("data-sec")].filter(function(x){return x.id===row.getAttribute("data-id")})[0];
+  if(!item)return;
+  item.day=parseInt(mt[1],10)+"일";
+  var btn=row.querySelector(".dbtn");
+  btn.textContent=item.day;btn.classList.remove("empty");
+  markDirty(item.id);
 });
 main.addEventListener("keydown",function(e){
   if(e.key!=="Enter")return;
