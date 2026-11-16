@@ -144,6 +144,11 @@ dialog p{margin:0 0 10px;color:var(--muted);font-size:13.5px}
 dialog textarea{width:100%;height:190px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
 .dlg-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
 .msg{min-height:1.4em;font-size:13px;margin-top:6px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:50;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:14px;display:flex;gap:10px;align-items:center;max-width:calc(100vw - 32px)}
+.toast[hidden]{display:none}
+.toast button{font:inherit;font-weight:700;color:inherit;background:transparent;border:1px solid currentColor;border-radius:8px;padding:6px 10px;min-height:32px;cursor:pointer}
+#bkInfo.bad{color:var(--neg);font-weight:700}
+#bkBtn.alert{outline:2px solid var(--neg);outline-offset:1px}
 
 @media (max-width:980px){
   .mgrid{grid-template-columns:1fr}
@@ -332,10 +337,11 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
     <div class="brand">조이쀼의<br>가계부</div>
     <div class="yearbox"><select id="yearSel" class="yearsel" aria-label="연도 선택"></select><button class="btn" id="yearAdd" type="button">연도 추가</button></div>
     <nav id="nav" aria-label="월 선택"></nav>
-    <div class="tools"><div class="sync" id="sync" role="status">불러오는 중…</div><button class="btn" id="bkBtn" type="button">백업·복원</button> <button class="btn" id="outBtn" type="button">로그아웃</button></div>
+    <div class="tools"><div class="sync" id="sync" role="status">불러오는 중…</div><div class="sync" id="bkInfo"></div><button class="btn" id="bkBtn" type="button">백업·복원</button> <button class="btn" id="outBtn" type="button">로그아웃</button></div>
   </aside>
   <main id="main"></main>
 </div>
+<div id="toast" class="toast" role="status" hidden></div>
 <div id="gate" hidden></div>
 
 <dialog id="ydlg">
@@ -356,7 +362,8 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
   <textarea id="bkText" spellcheck="false" aria-label="백업 데이터"></textarea>
   <div class="msg" id="bkMsg" role="status"></div>
   <div class="dlg-actions">
-    <button class="btn" type="button" id="bkCopy">전체 선택</button>
+    <button class="btn primary" type="button" id="bkDown">파일로 내려받기</button>
+    <button class="btn" type="button" id="bkCopy">복사</button>
     <button class="btn primary" type="button" id="bkRestore">이 내용으로 복원</button>
     <button class="btn" type="button" id="bkClose">닫기</button>
   </div>
@@ -434,6 +441,48 @@ function toRow(it){
 function mkItem(m,sec,o){
   o=o||{};
   return {id:o.id||newId(),name:o.name||"",desc:o.desc||"",day:o.day||"",amt:+o.amt||0,payer:o.payer||"",order:o.order||0,_m:m,_s:sec,_y:YEAR};
+}
+/* ---------- 실행 취소(Undo): 지우기·전월 복사·복원 직전 상태를 저장해 둔다 ---------- */
+var undoSnap=null, undoTimer=null;
+function snapshot(label){
+  undoSnap={label:label,year:YEAR,months:JSON.parse(JSON.stringify(S.months))};
+  showToast(label);
+}
+function showToast(label){
+  var t=document.getElementById("toast");
+  if(!t)return;
+  t.innerHTML="";
+  var sp=document.createElement("span");sp.textContent=label+" ";
+  var b=document.createElement("button");b.type="button";b.textContent="되돌리기";
+  b.addEventListener("click",doUndo);
+  t.appendChild(sp);t.appendChild(b);t.hidden=false;
+  clearTimeout(undoTimer);undoTimer=setTimeout(hideToast,12000);
+}
+function hideToast(){var t=document.getElementById("toast");if(t)t.hidden=true}
+function doUndo(){
+  var u=undoSnap;
+  if(!u||u.year!==YEAR){hideToast();return}
+  var keep={};
+  for(var m=1;m<=12;m++)ALL.forEach(function(k){u.months[m][k].forEach(function(x){keep[x.id]=true})});
+  for(var m2=1;m2<=12;m2++)ALL.forEach(function(k){S.months[m2][k].forEach(function(x){if(!keep[x.id]){delete dirty[x.id];dels[x.id]=true}})});
+  S.months=u.months;
+  for(var m3=1;m3<=12;m3++){
+    ALL.forEach(function(k){S.months[m3][k].forEach(function(x){delete dels[x.id];dirty[x.id]=true})});
+    metaDirty[m3]=true;
+  }
+  undoSnap=null;hideToast();schedule();render();
+}
+/* ---------- 백업 날짜 ---------- */
+var BK_KEY="gagyebu_last_backup";
+function lastBackup(){try{return +localStorage.getItem(BK_KEY)||0}catch(e){return 0}}
+function markBackup(){try{localStorage.setItem(BK_KEY,String(Date.now()))}catch(e){}updateBkInfo()}
+function updateBkInfo(){
+  var el=document.getElementById("bkInfo"), btn=document.getElementById("bkBtn");
+  if(!el)return;
+  var t=lastBackup(), days=t?Math.floor((Date.now()-t)/86400000):-1, stale=(days<0||days>=30);
+  el.textContent=days<0?"백업한 적 없어요":(days===0?"오늘 백업함":days+"일 전 백업");
+  el.classList.toggle("bad",stale);
+  if(btn)btn.classList.toggle("alert",stale);
 }
 function schedule(){setStatus("저장 중…");clearTimeout(timer);timer=setTimeout(flush,600)}
 function markDirty(id){dirty[id]=true;schedule()}
@@ -592,6 +641,7 @@ async function copySection(sec,m){
     ?m+"월 "+sname+" "+d[sec].length+"개를 지우고 "+prevLabel+" 내용("+src.length+"개)으로 바꿀까요?"
     :prevLabel+" "+sname+" "+src.length+"개를 "+m+"월에 복사할까요?";
   if(!confirm(msg))return;
+  snapshot(m+"월 "+sname+" 전월 복사를 했어요.");
   d[sec].forEach(function(x){delete dirty[x.id];dels[x.id]=true});
   d[sec]=src.map(function(s,i){
     var it=mkItem(m,sec,{name:s.name.replace(monthRe,function(_,p){return p+m+"월"}),payer:s.payer,amt:s.amt,order:i});
@@ -721,6 +771,7 @@ async function switchYear(y){
   var ok=await flushAll();
   if(!ok){setStatus("저장 실패. 잠시 후 다시 시도해 주세요",true);return false}
   var prev=YEAR;
+  undoSnap=null;hideToast();
   try{
     YEAR=y;recalcCurM();
     var n=await loadAll();
@@ -804,7 +855,7 @@ function showGate(kind,msg){
   var rl=document.getElementById("g-reload");if(rl)rl.addEventListener("click",function(){location.reload()});
   var go=document.getElementById("g-out");if(go)go.addEventListener("click",signOut);
 }
-function hideGate(){gate.hidden=true;gate.innerHTML="";appEl.hidden=false}
+function hideGate(){gate.hidden=true;gate.innerHTML="";appEl.hidden=false;updateBkInfo()}
 async function signOut(){
   try{await flush()}catch(e){}
   try{await sb.auth.signOut()}catch(e){}
@@ -889,6 +940,7 @@ main.addEventListener("click",function(e){
       copySection(b.getAttribute("data-sec"),cur);
     }else if(act==="del"){
       if(!confirm("지우시겠습니까?"))return;
+      snapshot("항목을 지웠어요.");
       var row=b.closest("[data-id]"), sc=row.getAttribute("data-sec"), id=row.getAttribute("data-id");
       d[sc]=d[sc].filter(function(x){return x.id!==id});
       delete dirty[id];dels[id]=true;schedule();render();
@@ -952,6 +1004,16 @@ document.getElementById("bkCopy").addEventListener("click",function(){
   bkText.focus();bkText.select();
   var ok=false;try{ok=document.execCommand("copy")}catch(e){}
   bkMsg.className="msg";bkMsg.textContent=ok?"복사했어요.":"전체 선택됐어요. 길게 눌러 복사해 주세요.";
+  if(ok)markBackup();
+});
+document.getElementById("bkDown").addEventListener("click",function(){
+  try{
+    var blob=new Blob([exportJSON()],{type:"application/json"}), a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);a.download="가계부-백업-"+YEAR+"-"+new Date().toISOString().slice(0,10)+".json";
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
+    markBackup();bkMsg.className="msg";bkMsg.textContent=YEAR+"년 백업 파일을 내려받았어요. 다른 연도도 연도를 바꿔서 각각 받아 주세요.";
+  }catch(e){bkMsg.className="msg neg";bkMsg.textContent="파일 저장에 실패했어요. '전체 선택'으로 복사해 주세요."}
 });
 bkText.addEventListener("input",disarm);
 bkRestore.addEventListener("click",function(){
@@ -959,6 +1021,7 @@ bkRestore.addEventListener("click",function(){
   try{months=importMonths(JSON.parse(bkText.value))}
   catch(e){bkMsg.className="msg neg";bkMsg.textContent="복원할 수 없어요. 백업 내용을 처음부터 끝까지 그대로 붙여 넣었는지 확인해 주세요.";disarm();return}
   if(!armed){armed=true;bkRestore.textContent="정말 복원할까요?";bkMsg.className="msg neg";bkMsg.textContent="지금 DB의 "+YEAR+"년 내용이 모두 이 내용으로 바뀌어요.";return}
+  snapshot(YEAR+"년을 백업 내용으로 복원했어요.");
   for(var m=1;m<=12;m++){
     ALL.forEach(function(k){
       S.months[m][k].forEach(function(x){delete dirty[x.id];dels[x.id]=true});
