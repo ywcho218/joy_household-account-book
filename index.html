@@ -147,6 +147,12 @@ dialog textarea{width:100%;height:190px;font:12px/1.4 ui-monospace,Menlo,Consola
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:50;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:14px;display:flex;gap:10px;align-items:center;max-width:calc(100vw - 32px)}
 .toast[hidden]{display:none}
 nav a.xfirst{margin-top:8px}
+nav a .lk{font-size:11px;margin-left:4px}
+.lockbtn.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+main.locked .card,main.locked .stat input{opacity:.8}
+main.locked .card input:read-only,main.locked .stat input{cursor:not-allowed}
+main.locked .card .add:disabled,main.locked .card .del:disabled,main.locked .card .pay:disabled,main.locked .card .dbtn:disabled{opacity:.35;cursor:not-allowed}
+main.locked .pagehead h1::after{content:" 🔒";font-size:.8em}
 .bud{padding:0 12px 10px}
 .bud .bar{height:7px;border-radius:99px;background:var(--soft);overflow:hidden}
 .bud .bar i{display:block;height:100%;border-radius:99px;background:var(--pos)}
@@ -688,7 +694,7 @@ function monthView(m){
     +'<div class="who d"><span class="lb"><i></i>답니한테 보내준 돈</span><div class="v" data-bind="sendD"></div><span class="sub">답 결제 항목 합계</span></div></section>';
   var avail='<div class="stat"><label for="top-avail">가용금액 합계</label><input id="top-avail" class="amt" data-top="avail" inputmode="'+AMT_MODE+'" placeholder="0" value="'+fmtIn(d.avail)+'"></div>';
   return '<div class="pagehead"><div><h1>'+YEAR+'년 '+m+'월 〈조이쀼의 가계부〉</h1></div>'
-    +'<div class="pager"><button class="btn" type="button" data-go="m'+(m-1)+'"'+(m===1?" disabled":"")+'>이전 달</button><button class="btn" type="button" data-go="m'+(m+1)+'"'+(m===12?" disabled":"")+'>다음 달</button></div></div>'
+    +'<div class="pager"><button class="btn lockbtn'+(isLocked(YEAR,m)?" on":"")+'" type="button" data-act="lock" aria-pressed="'+isLocked(YEAR,m)+'">'+(isLocked(YEAR,m)?"🔒 잠금 해제":"🔓 잠금")+'</button><button class="btn" type="button" data-go="m'+(m-1)+'"'+(m===1?" disabled":"")+'>이전 달</button><button class="btn" type="button" data-go="m'+(m+1)+'"'+(m===12?" disabled":"")+'>다음 달</button></div></div>'
     +'<div class="sheetwrap"><div class="sheet">'
       +'<div class="zone z1">'+cardHTML("income",d)+cardHTML("saving",d)+spend+room+'</div>'
       +'<div class="zone z2">'+cardHTML("fixed",d)+avail+settle+'</div>'
@@ -836,7 +842,25 @@ function summaryView(){
 
 
 /* ---------- 공용 저장소(app_kv): 템플릿·예산·메모 ---------- */
-var KV={templates:{income:[],saving:[],fixed:[]},budgets:{},memo:[],ok:false}, kvDirty={}, kvTimer={};
+var KV={templates:{income:[],saving:[],fixed:[]},budgets:{},memo:[],locks:{},ok:false}, kvDirty={}, kvTimer={};
+var LOCK_LS="gagyebu_locks";
+/* 월 잠금: app_kv가 있으면 부부 공용, 없으면 이 기기에만 저장 */
+function isLocked(y,m){return !!KV.locks[y+"-"+m]}
+function toggleLock(m){
+  var k=YEAR+"-"+m;
+  if(KV.locks[k]){if(!confirm(m+"월 잠금을 풀까요?"))return;delete KV.locks[k]}
+  else KV.locks[k]=true;
+  if(KV.ok)saveKV("locks");
+  else try{localStorage.setItem(LOCK_LS,JSON.stringify(KV.locks))}catch(e){}
+  render();
+}
+function applyLock(){
+  var on=isMonth()&&isLocked(YEAR,cur);
+  main.classList.toggle("locked",on);
+  if(!on)return;
+  main.querySelectorAll(".card input,.card select,.stat input").forEach(function(i){i.readOnly=true;i.tabIndex=-1});
+  main.querySelectorAll(".card button[data-act],.dinput").forEach(function(b){if(b.getAttribute("data-act")!=="budget")b.disabled=true});
+}
 var KV_SQL="create table if not exists public.app_kv (\n  household_id uuid not null references public.households(id) on delete cascade,\n  key text not null,\n  value jsonb not null default '{}'::jsonb,\n  updated_at timestamptz not null default now(),\n  primary key (household_id, key)\n);\nalter table public.app_kv enable row level security;\ncreate policy \"members all app_kv\" on public.app_kv\n  for all using (public.is_member(household_id))\n  with check (public.is_member(household_id));";
 async function loadKV(){
   try{
@@ -847,10 +871,12 @@ async function loadKV(){
       if(x.key==="templates")KV.templates=Object.assign({income:[],saving:[],fixed:[]},x.value||{});
       else if(x.key==="budgets")KV.budgets=x.value||{};
       else if(x.key==="memo")KV.memo=(x.value&&x.value.notes)||[];
+      else if(x.key==="locks")KV.locks=x.value||{};
     });
   }catch(e){KV.ok=false}
+  if(!KV.ok){try{KV.locks=JSON.parse(localStorage.getItem(LOCK_LS)||"{}")||{}}catch(e){KV.locks={}}}
 }
-function kvVal(key){return key==="templates"?KV.templates:key==="budgets"?KV.budgets:{notes:KV.memo}}
+function kvVal(key){return key==="templates"?KV.templates:key==="budgets"?KV.budgets:key==="locks"?KV.locks:{notes:KV.memo}}
 async function flushKV(key){
   clearTimeout(kvTimer[key]);
   if(!kvDirty[key])return;
@@ -1148,7 +1174,7 @@ async function switchYear(y){
 function navHTML(){
   var h='<a class="first'+(cur==="summary"?" on":"")+'" href="#'+YEAR+'-summary"'+(cur==="summary"?' aria-current="page"':"")+'>종합 현황</a>';
   for(var m=1;m<=12;m++){
-    h+='<a class="'+(cur===m?"on":"")+(m===curM?" now":"")+'" href="#'+YEAR+'-m'+m+'"'+(cur===m?' aria-current="page"':"")+'>'+m+'월</a>';
+    h+='<a class="'+(cur===m?"on":"")+(m===curM?" now":"")+'" href="#'+YEAR+'-m'+m+'"'+(cur===m?' aria-current="page"':"")+'>'+m+'월'+(isLocked(YEAR,m)?'<span class="lk" aria-label="잠김">🔒</span>':"")+'</a>';
   }
   [["compare","월별 비교"],["search","검색"],["memo","메모"]].forEach(function(x,i){
     h+='<a class="extra'+(i===0?" xfirst":"")+(cur===x[0]?" on":"")+'" href="#'+YEAR+'-'+x[0]+'"'+(cur===x[0]?' aria-current="page"':"")+'>'+x[1]+'</a>';
@@ -1161,7 +1187,7 @@ function render(){
   navEl.innerHTML=navHTML();
   main.className=isMonth()?"":"narrow";
   main.innerHTML=cur==="summary"?summaryView():cur==="compare"?compareView():cur==="search"?searchView():cur==="memo"?memoView():monthView(cur);
-  if(isMonth())refresh();
+  if(isMonth()){refresh();applyLock()}
   else if(cur==="search")searchRun();
 }
 var hashBusy=false, hashAgain=false;
@@ -1281,6 +1307,8 @@ main.addEventListener("click",function(e){
   if(b){
     if(!isMonth()){viewAct(b);return}
     var act=b.getAttribute("data-act"), d=S.months[cur];
+    if(act==="lock"){toggleLock(cur);return}
+    if(isLocked(YEAR,cur)&&act!=="budget")return;
     if(act==="tpl"){tplOpen(b.getAttribute("data-sec"));return}
     if(act==="budget"){setBudget(b.getAttribute("data-sec"));return}
     if(act==="add"){
