@@ -171,6 +171,10 @@ nav a.xfirst{margin-left:8px}
 .pincard p{color:var(--muted);margin:0}
 .pincard input{font:inherit;font-size:24px;letter-spacing:.4em;text-align:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);width:100%}
 .linkbtn{background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:6px}
+.morelist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.morelist .btn{padding:12px 10px;font-size:14.5px;text-align:center}
+.morelist .btn:disabled{opacity:.4;cursor:not-allowed}
+nav a.moreitem{cursor:pointer}
 .racts{display:flex;align-items:center;justify-content:flex-end}
 .racts .del{padding:4px 5px}
 .racts .mv{font-size:15px;letter-spacing:-1px}
@@ -465,9 +469,9 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
 <div class="app" id="app" hidden>
   <aside class="rail">
     <div class="brand">조이쀼의 가계부</div>
-    <div class="yearbox"><select id="yearSel" class="yearsel" aria-label="연도 선택"></select><button class="btn" id="yearAdd" type="button">연도 추가</button></div>
+    <div class="yearbox"><select id="yearSel" class="yearsel" aria-label="연도 선택"></select><button class="btn" id="yearAdd" type="button" hidden>연도 추가</button></div>
     <nav id="nav" aria-label="월 선택"></nav>
-    <div class="tools"><div class="sync" id="sync" role="status">불러오는 중…</div><div class="sync" id="bkInfo"></div><button class="btn" id="themeBtn" type="button" aria-label="화면 모드 전환">🌙 다크</button> <button class="btn" id="pinBtn" type="button" aria-label="앱 잠금 설정" hidden>🔐</button> <button class="btn" id="bkBtn" type="button">백업·복원</button> <button class="btn" id="outBtn" type="button">로그아웃</button></div>
+    <div class="tools"><div class="sync" id="sync" role="status">불러오는 중…</div><div class="sync" id="bkInfo"></div><button class="btn" id="themeBtn" type="button" aria-label="화면 모드 전환" hidden>🌙 다크</button> <button class="btn" id="pinBtn" type="button" aria-label="앱 잠금 설정" hidden>🔐</button> <button class="btn" id="bkBtn" type="button" hidden>백업·복원</button> <button class="btn" id="outBtn" type="button">로그아웃</button></div>
   </aside>
   <main id="main"></main>
 </div>
@@ -550,6 +554,20 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
     <button class="btn primary" type="button" id="tplApply">이번 달에 추가</button>
     <button class="btn" type="button" id="tplClose">닫기</button>
   </div>
+</dialog>
+
+<dialog id="more">
+  <h2>더보기</h2>
+  <div class="morelist">
+    <button class="btn" type="button" data-m="year">연도 추가</button>
+    <button class="btn" type="button" data-m="history">변경 이력</button>
+    <button class="btn" type="button" data-m="theme" id="moreTheme">다크 모드</button>
+    <button class="btn" type="button" data-m="backup">백업·복원</button>
+    <button class="btn" type="button" data-m="lock" id="moreLock">월 잠금</button>
+    <button class="btn" type="button" data-m="sum" id="moreSum">월 요약</button>
+  </div>
+  <p class="hint" id="moreHint" style="margin-top:10px"></p>
+  <div class="dlg-actions"><button class="btn" type="button" id="moreClose">닫기</button></div>
 </dialog>
 
 <dialog id="pinDlg">
@@ -842,7 +860,7 @@ function monthView(m){
     +'<div class="stat"><label for="top-baby">하꿍이 저축 합계 (25일 기준)</label><input id="top-baby" class="amt" data-top="baby" inputmode="'+AMT_MODE+'" placeholder="0" value="'+fmtIn(d.baby)+'">'
     +'<span class="hint" data-bind="babyHint"></span></div>';
   return '<div class="pagehead"><div><h1>'+YEAR+'년 '+m+'월 〈조이쀼의 가계부〉</h1></div>'
-    +'<div class="pager"><button class="btn lockbtn'+(isLocked(YEAR,m)?" on":"")+'" type="button" data-act="lock" aria-pressed="'+isLocked(YEAR,m)+'">'+(isLocked(YEAR,m)?"🔒 잠금 해제":"🔓 잠금")+'</button><button class="btn" type="button" data-act="msum">월 요약</button><button class="btn" type="button" data-go="m'+(m-1)+'"'+(m===1?" disabled":"")+'>이전 달</button><button class="btn" type="button" data-go="m'+(m+1)+'"'+(m===12?" disabled":"")+'>다음 달</button></div></div>'
+    +'<div class="pager"><button class="btn" type="button" data-go="m'+(m-1)+'"'+(m===1?" disabled":"")+'>이전 달</button><button class="btn" type="button" data-go="m'+(m+1)+'"'+(m===12?" disabled":"")+'>다음 달</button></div></div>'
     +'<div class="sheetwrap"><div class="sheet">'
       +'<div class="zone z1">'+cardHTML("income",d)+cardHTML("saving",d)+spend+room+'</div>'
       +'<div class="zone z2">'+cardHTML("fixed",d)+avail+settle+'</div>'
@@ -1842,9 +1860,10 @@ function navHTML(){
   for(var m=1;m<=12;m++){
     h+='<a class="'+(cur===m?"on":"")+(m===curM?" now":"")+'" href="#'+YEAR+'-m'+m+'"'+(cur===m?' aria-current="page"':"")+'>'+m+'월'+(isLocked(YEAR,m)?'<span class="lk" aria-label="잠김">🔒</span>':"")+'</a>';
   }
-  [["compare","월별 비교"],["annual","연간 결산"],["search","검색"],["memo","메모"],["history","이력"]].forEach(function(x,i){
+  [["compare","월별 비교"],["annual","연간 결산"],["search","검색"],["memo","메모"]].forEach(function(x,i){
     h+='<a class="extra'+(i===0?" xfirst":"")+(cur===x[0]?" on":"")+'" href="#'+YEAR+'-'+x[0]+'"'+(cur===x[0]?' aria-current="page"':"")+'>'+x[1]+'</a>';
   });
+  h+='<a class="extra moreitem'+(cur==="history"?" on":"")+'" href="#" data-more="1" role="button" aria-haspopup="dialog">더보기</a>';
   return h;
 }
 function render(){
@@ -2148,6 +2167,34 @@ function updateThemeBtn(){
   if(b)b.textContent=dark?"☀ 라이트":"🌙 다크";
   var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",dark?"#131728":"#4458CF");
 }
+/* 더보기: 자주 안 쓰는 기능 모음 */
+var moreDlg=document.getElementById("more");
+function moreClose(){if(moreDlg.close)moreDlg.close();else moreDlg.removeAttribute("open")}
+function openMore(){
+  var mo=isMonth(), dark=curTheme()==="dark";
+  document.getElementById("moreTheme").textContent=dark?"라이트 모드":"다크 모드";
+  var lk=document.getElementById("moreLock"), sm=document.getElementById("moreSum");
+  lk.disabled=!mo;sm.disabled=!mo;
+  lk.textContent=mo?(isLocked(YEAR,cur)?"🔒 "+cur+"월 잠금 해제":"🔓 "+cur+"월 잠금"):"월 잠금";
+  sm.textContent=mo?cur+"월 요약":"월 요약";
+  document.getElementById("moreHint").textContent=mo?"":"월 잠금과 월 요약은 월 탭에서 쓸 수 있어요.";
+  if(moreDlg.showModal)moreDlg.showModal();else moreDlg.setAttribute("open","");
+}
+navEl.addEventListener("click",function(e){
+  var a=e.target.closest("[data-more]");if(!a)return;
+  e.preventDefault();openMore();
+});
+document.getElementById("moreClose").addEventListener("click",moreClose);
+document.querySelector(".morelist").addEventListener("click",function(e){
+  var b=e.target.closest("[data-m]");if(!b||b.disabled)return;
+  var k=b.getAttribute("data-m");moreClose();
+  if(k==="year")document.getElementById("yearAdd").click();
+  else if(k==="history")location.hash=YEAR+"-history";
+  else if(k==="theme")document.getElementById("themeBtn").click();
+  else if(k==="backup")openBackup();
+  else if(k==="lock"&&isMonth())toggleLock(cur);
+  else if(k==="sum"&&isMonth())openSummary(cur);
+});
 document.getElementById("themeBtn").addEventListener("click",function(){
   var t=curTheme()==="dark"?"light":"dark";
   document.documentElement.setAttribute("data-theme",t);
