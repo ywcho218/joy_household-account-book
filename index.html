@@ -175,6 +175,23 @@ nav a.xfirst{margin-left:8px}
 .morelist .btn{padding:12px 10px;font-size:14.5px;text-align:center}
 .morelist .btn:disabled{opacity:.4;cursor:not-allowed}
 nav a.moreitem{cursor:pointer}
+.row.dup{box-shadow:inset 3px 0 0 var(--c-food);background:color-mix(in srgb,var(--c-food) 9%,transparent)}
+.dupnote{font-size:12.5px;color:var(--c-food);font-weight:600;margin-top:2px}.dupnote:empty{display:none}
+.homegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px;align-items:start}
+.homebud{margin-bottom:12px}.hb-h{display:flex;justify-content:space-between;gap:8px;font-size:13.5px;margin-bottom:4px}
+.homealert{margin-bottom:12px;border-color:var(--c-food)}.homealert p{margin:4px 0;font-size:13.5px}.homealert a{color:var(--accent)}
+.calhead,.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.calhead span{text-align:center;font-size:12px;color:var(--muted);padding:4px 0}.calhead .sun{color:var(--neg)}.calhead .sat{color:var(--accent)}
+.calcell{font:inherit;border:1px solid var(--line);border-radius:10px;min-height:64px;padding:5px 6px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;background:color-mix(in srgb,var(--accent) calc(var(--h,0)*1%),var(--surface));color:var(--ink);cursor:pointer;text-align:left;min-width:0;overflow:hidden}
+.calcell.blank{border:0;background:none;cursor:default}
+.calcell b{font-size:12px;font-weight:600}.calcell span{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}.calcell em{font-size:11px;color:var(--muted);font-style:normal}
+.calcell.sel{outline:2px solid var(--accent);outline-offset:-2px}.calcell.today b{color:var(--accent)}
+.srrow.caldetail{grid-template-columns:24px minmax(0,1fr) 80px 96px}
+@media (max-width:720px){
+  .homegrid{grid-template-columns:1fr}
+  .calcell{min-height:50px;padding:3px 4px}.calcell span{font-size:11.5px}.calcell em{display:none}
+  .srrow.caldetail{grid-template-columns:24px minmax(0,1fr) 84px;grid-template-areas:"s l a" "s p a"}
+}
 .racts{display:flex;align-items:center;justify-content:flex-end}
 .racts .del{padding:4px 5px}
 .racts .mv{font-size:15px;letter-spacing:-1px}
@@ -834,7 +851,7 @@ function rowHTML(sec,x){
   var h;
   if(sec==="income"||sec==="saving"){h='<div class="row r2" data-id="'+x.id+'" data-sec="'+sec+'">'+name+amt+del+'</div>'}
   else if(sec==="fixed"){h='<div class="row r3" data-id="'+x.id+'" data-sec="'+sec+'">'+name+paybtn+amt+del+'</div>'}
-  else{h='<div class="row r4'+(isEx(x)?' ex':'')+'" data-id="'+x.id+'" data-sec="'+sec+'">'+paybtn+''+dayPicker(x)+'<input data-f="desc" list="dl-'+sec+'" autocomplete="off" placeholder="내용" aria-label="내용" value="'+esc(x.desc)+'">'+amt+del+'</div>'}
+  else{h='<div class="row r4'+(isEx(x)?' ex':'')+(DUPS.ids[x.id]?' dup':'')+'" data-id="'+x.id+'" data-sec="'+sec+'">'+paybtn+''+dayPicker(x)+'<input data-f="desc" list="dl-'+sec+'" autocomplete="off" placeholder="내용" aria-label="내용" value="'+esc(x.desc)+'">'+amt+del+'</div>'}
   return h;
 }
 function keyOf(sec){return sec==="income"?"inc":sec==="saving"?"sav":sec==="fixed"?"fix":sec}
@@ -853,7 +870,9 @@ function cardHTML(sec,d){
     +'<div class="card-f">'+foot+'</div>'
     +(isVar(sec)?'<div class="bud" data-budget="'+sec+'" hidden></div>':"")+'</section>';
 }
+var DUPS={ids:{},groups:[]};
 function monthView(m){
+  DUPS=findDups(m);
   var d=S.months[m];
   var spend='<div class="stat"><span class="lb">이달의 지출</span><div class="v"><span data-bind="exp"></span><small data-bind="expP"></small></div></div>';
   var room='<div class="stat key"><span class="lb">이달의 비상금<br>수입 − 저축 − 지출</span><div class="v" data-bind="room"></div></div>';
@@ -864,8 +883,8 @@ function monthView(m){
     +'<span class="hint">올해 1~'+m+'월 비상금 누적 <b data-bind="cumRoom"></b><button type="button" data-act="availauto">자동 입력</button></span></div>'
     +'<div class="stat"><label for="top-baby">하꿍이 저축 합계 (25일 기준)</label><input id="top-baby" class="amt" data-top="baby" inputmode="'+AMT_MODE+'" placeholder="0" value="'+fmtIn(d.baby)+'">'
     +'<span class="hint" data-bind="babyHint"></span></div>';
-  return '<div class="pagehead"><div><h1>'+YEAR+'년 '+m+'월 〈조이쀼의 가계부〉</h1></div>'
-    +'<div class="pager"><button class="btn" type="button" data-go="m'+(m-1)+'"'+(m===1?" disabled":"")+'>이전 달</button><button class="btn" type="button" data-go="m'+(m+1)+'"'+(m===12?" disabled":"")+'>다음 달</button></div></div>'
+  return '<div class="pagehead"><div><h1>'+YEAR+'년 '+m+'월 〈조이쀼의 가계부〉</h1><div class="dupnote" data-bind="dupNote"></div></div>'
+    +'<div class="pager"><button class="btn" type="button" data-act="gocal">달력</button><button class="btn" type="button" data-go="m'+(m-1)+'"'+(m===1?" disabled":"")+'>이전 달</button><button class="btn" type="button" data-go="m'+(m+1)+'"'+(m===12?" disabled":"")+'>다음 달</button></div></div>'
     +'<div class="sheetwrap"><div class="sheet">'
       +'<div class="zone z1">'+cardHTML("income",d)+cardHTML("saving",d)+spend+room+'</div>'
       +'<div class="zone z2">'+cardHTML("fixed",d)+avail+settle+'</div>'
@@ -933,6 +952,9 @@ function refresh(){
   ["inc","sav","fix","food","living","life","etc","exp","room","sendO","sendD"].forEach(function(k){map[k]=won(r[k])});
   ["sav","fix","food","living","life","etc","exp"].forEach(function(k){map[k+"P"]=pc(r[k],inc)});
   map.expP=inc>0?"수입의 "+pc(r.exp,inc):"";
+  var dpx=findDups(cur);
+  map.dupNote=dpx.groups.length?"같은 날 같은 내용·금액이 겹친 항목이 "+dpx.groups.length+"쌍 있어요 (주황색 표시)":"";
+  document.querySelectorAll(".row.r4").forEach(function(rw){rw.classList.toggle("dup",!!dpx.ids[rw.getAttribute("data-id")])});
   var cum=cumRoom(cur);
   map.cumRoom=won(cum);
   var bb=S.months[cur].baby||0, pb=cur>1?(S.months[cur-1].baby||0):null;
@@ -1282,6 +1304,9 @@ function viewInput(t){
 function viewAct(b){
   var act=b.getAttribute("data-act");
   if(act==="cmp"){cmpKey=b.getAttribute("data-k");render()}
+  else if(act==="calprev"){calM=Math.max(1,(calM||lastMonth||homeMonth())-1);calSel=null;render()}
+  else if(act==="calnext"){calM=Math.min(12,(calM||lastMonth||homeMonth())+1);calSel=null;render()}
+  else if(act==="calday"){calSel=+b.getAttribute("data-d");render()}
   else if(act==="tagsearch"){SR.q="#"+b.getAttribute("data-tag");SR.sec="";SR.payer="";SR.all=false;location.hash=YEAR+"-search"}
   else if(act==="memoadd"){
     if(!KV.ok){kvAlert();return}
@@ -1324,7 +1349,8 @@ function parseLines(txt){
 function pstPreview(){
   var r=parseLines(pstText.value), tot=r.items.reduce(function(s,x){return s+x.amt},0);
   pstMsg.className="msg";
-  pstMsg.textContent=pstText.value.trim()?(r.items.length+"줄 인식 · 합계 "+won(tot)+(r.skip?" · "+r.skip+"줄은 형식이 달라 건너뛰어요":"")):"";
+  var dn=r.items.filter(function(x){return existsLike(cur,x.desc,x.amt,x.day)}).length;
+  pstMsg.textContent=pstText.value.trim()?(r.items.length+"줄 인식 · 합계 "+won(tot)+(r.skip?" · "+r.skip+"줄은 형식이 달라 건너뛰어요":"")+(dn?" · 이미 있는 것과 같아 보이는 줄 "+dn+"개":"")):"";
 }
 function pstOpen(sec){
   pstSec=sec;pstText.value="";pstMsg.textContent="";
@@ -1337,6 +1363,11 @@ document.getElementById("pstClose").addEventListener("click",function(){if(pstDl
 document.getElementById("pstOk").addEventListener("click",function(){
   var r=parseLines(pstText.value);
   if(!r.items.length){pstMsg.className="msg neg";pstMsg.textContent="추가할 줄이 없어요. '내용 금액' 형태로 한 줄에 하나씩 적어 주세요.";return}
+  var dupN=r.items.filter(function(x){return existsLike(cur,x.desc,x.amt,x.day)}).length;
+  if(dupN&&confirm("이미 있는 항목과 같아 보이는 줄이 "+dupN+"개 있어요.\n확인: 그 줄은 건너뛰고 "+(r.items.length-dupN)+"개만 추가\n취소: 모두 추가")){
+    r.items=r.items.filter(function(x){return !existsLike(cur,x.desc,x.amt,x.day)});
+    if(!r.items.length){pstMsg.className="msg neg";pstMsg.textContent="모두 이미 있는 항목이라 추가하지 않았어요.";return}
+  }
   var payer=document.getElementById("pstPayer").value, d=S.months[cur][pstSec], base=d.length;
   snapshot(cur+"월 "+SECS[pstSec]+" "+r.items.length+"개를 붙여넣어 추가했어요.");
   r.items.forEach(function(x,i){var it=mkItem(cur,pstSec,{desc:x.desc,day:x.day,amt:x.amt,payer:payer,order:base+i});d.push(it);dirty[it.id]=true});
@@ -1794,13 +1825,123 @@ function startRealtime(){
   }catch(e){rtChan=null}
 }
 
+/* ---------- 중복 항목 감지: 같은 달, 같은 날, 같은 내용·금액이 겹치면 표시 ---------- */
+function dupText(x){return (x.desc||"").replace(/^\[제외\]\s*/,"").trim()}
+function dupKey(x){var d=dupText(x);return d&&(+x.amt)&&x.day?d+"|"+(+x.amt)+"|"+x.day:""}
+function findDups(m){
+  var map={}, ids={}, groups=[];
+  VARS.forEach(function(k){S.months[m][k].forEach(function(x){var key=dupKey(x);if(key)(map[key]=map[key]||[]).push(x)})});
+  Object.keys(map).forEach(function(k){if(map[k].length>1){groups.push({key:k,items:map[k]});map[k].forEach(function(x){ids[x.id]=true})}});
+  return {ids:ids,groups:groups};
+}
+/* 붙여넣을 줄이 이미 있는 항목과 같은지 (날짜가 없으면 내용·금액만 비교) */
+function existsLike(m,desc,amt,day){
+  var hit=false;
+  VARS.forEach(function(k){S.months[m][k].forEach(function(x){
+    if(hit||dupText(x)!==desc||(+x.amt||0)!==amt)return;
+    if(!day||!x.day||x.day===day)hit=true;
+  })});
+  return hit;
+}
+
+/* ---------- 홈 대시보드 ---------- */
+function homeCard(k,v,cls,key,sub){return '<div class="kvc'+(key?" key":"")+'"><div class="k">'+k+'</div><div class="v '+(cls||"")+'">'+v+'</div>'+(sub?'<div class="k" style="margin-top:3px">'+sub+'</div>':"")+'</div>'}
+function dayNum(x){var m=/(\d+)/.exec(x.day||"");return m?+m[1]:0}
+function homeMonth(){return NOW.getFullYear()===YEAR?NOW.getMonth()+1:12}
+function homeView(){
+  var m=homeMonth(), isNow=NOW.getFullYear()===YEAR&&NOW.getMonth()+1===m;
+  var r=calc(m), dim=new Date(YEAR,m,0).getDate(), el=isNow?NOW.getDate():dim, left=dim-el;
+  var varSpent=VARS.reduce(function(s,k){return s+r[k]},0);
+  var pace=el?Math.round(varSpent/el):0, proj=r.fix+pace*dim;
+  var cards='<div class="kvgrid">'
+    +homeCard("이번 달 지출",won(r.exp),"",0,"수입의 "+pc(r.exp,r.inc))
+    +homeCard("수입",won(r.inc))
+    +homeCard("이달의 비상금",won(r.room),r.room<0?"neg":"pos",1,"수입 − 저축 − 지출")
+    +homeCard("월말 예상 지출",won(proj),proj>r.inc&&r.inc>0?"neg":"","","하루 평균 변동지출 "+won(pace)+(isNow?" · 남은 "+left+"일":""))
+    +'</div>';
+  /* 예산 */
+  var budRows=VARS.filter(function(k){return +KV.budgets[k]}).map(function(k){
+    var b=+KV.budgets[k], sp=r[k], p=sp/b, cls=p>1?"over":p>=0.8?"warn":"ok";
+    return '<div class="homebud"><div class="hb-h"><span>'+esc(SECS[k])+'</span><span>'+won(sp)+' / '+won(b)+'</span></div><div class="bud '+cls+'" style="padding:0"><div class="bar"><i style="width:'+Math.max(0,Math.min(100,p*100)).toFixed(1)+'%"></i></div><div class="bl"><span>'+(p*100).toFixed(0)+'%</span><span>'+(sp>b?won(sp-b)+" 초과":won(b-sp)+" 남음")+'</span></div></div></div>';
+  }).join("");
+  var budSec='<section class="card" style="padding:14px"><h3 style="margin-bottom:8px">예산 현황 ('+m+'월)</h3>'+(budRows||'<p class="dim">예산을 정하면 여기에서 진행률을 볼 수 있어요. 월 화면 변동지출 카드의 "예산" 버튼으로 정해요.</p>')+'</section>';
+  /* 최근 7일 큰 지출 */
+  var ref=isNow?NOW.getDate():dim, items=[];
+  [m,m-1].forEach(function(mm,idx){
+    if(mm<1)return;
+    var dm=new Date(YEAR,mm,0).getDate();
+    VARS.forEach(function(k){S.months[mm][k].forEach(function(x){
+      var d=dayNum(x), a=+x.amt||0;if(!d||isEx(x)||a<=0)return;
+      var ago=idx===0?ref-d:ref+(dm-d);
+      if(ago>=0&&ago<=6)items.push({m:mm,d:d,l:x.desc||"(내용 없음)",a:a,p:x.payer});
+    })});
+  });
+  items.sort(function(a,b){return b.a-a.a});
+  var wk=items.slice(0,5).map(function(x){return '<a class="srrow" href="#'+YEAR+'-m'+x.m+'"><span class="srd">'+x.m+'/'+x.d+'</span><span class="srs">'+esc(x.p||"")+'</span><span class="srl">'+esc(x.l)+'</span><span class="srp"></span><span class="sra">'+won(x.a)+'</span></a>'}).join("");
+  var wkSec='<section class="card" style="padding:14px"><h3 style="margin-bottom:6px">최근 7일 큰 지출</h3><div class="srlist">'+(wk||'<p class="dim">최근 7일 동안 날짜가 입력된 지출이 없어요.</p>')+'</div></section>';
+  /* 카테고리 비중 */
+  var cats=[["fix","고정지출"],["food","식비/외식비"],["living","생필품비"],["life","교통·문화·병원 등"],["etc","기타"]], mx=1;
+  cats.forEach(function(c){mx=Math.max(mx,r[c[0]])});
+  var share='<section class="card" style="padding:14px"><h3 style="margin-bottom:8px">카테고리 비중</h3><div class="cmplist">'+cats.map(function(c){
+    var v=r[c[0]];
+    return '<div class="cmprow annrow"><span class="mm">'+c[1]+'</span><span class="bar"><i style="width:'+(Math.max(0,v)/mx*100).toFixed(1)+'%"></i></span><span class="val">'+won(v)+'</span><span class="dl">'+(r.exp?(v/r.exp*100).toFixed(1)+"%":"")+'</span></div>';
+  }).join("")+'</div></section>';
+  /* 알림 모음 */
+  var dp=findDups(m), notes=[];
+  if(dp.groups.length)notes.push('같은 날 같은 내용·금액이 겹친 항목이 '+dp.groups.length+'쌍 있어요. <a href="#'+YEAR+'-m'+m+'">월 화면에서 주황색 표시를 확인</a>해 보세요.');
+  var bk=lastBackup(), days=bk?Math.floor((Date.now()-bk)/86400000):-1;
+  if(days<0||days>=30)notes.push(days<0?"아직 백업한 적이 없어요. 더보기 → 백업·복원에서 받아 두세요.":"마지막 백업이 "+days+"일 전이에요. 더보기 → 백업·복원에서 받아 두세요.");
+  if(isLocked(YEAR,m))notes.push(m+"월은 잠겨 있어요.");
+  var alerts=notes.length?'<section class="card homealert" style="padding:12px 14px">'+notes.map(function(n){return '<p>'+n+'</p>'}).join("")+'</section>':"";
+  var sendSec='<section class="settle" aria-label="결제자별 합계"><div class="who o"><span class="lb"><i></i>옹우한테 보내준 돈</span><div class="v">'+won(r.sendO)+'</div><span class="sub">옹 결제 항목 합계</span></div><div class="who d"><span class="lb"><i></i>답니한테 보내준 돈</span><div class="v">'+won(r.sendD)+'</div><span class="sub">답 결제 항목 합계</span></div></section>';
+  return '<div class="pagehead"><div><h1>'+YEAR+'년 '+m+'월 홈</h1></div><div class="pager"><a class="btn" href="#'+YEAR+'-m'+m+'">월 화면</a><a class="btn" href="#'+YEAR+'-calendar">달력</a></div></div>'
+    +alerts+cards+'<div class="homegrid">'+budSec+share+wkSec+sendSec+'</div>';
+}
+
+/* ---------- 달력 보기 ---------- */
+var calM=null, calSel=null, lastMonth=null;
+function compactWon(n){return Math.abs(n)>=10000?(n/10000).toFixed(1).replace(/\.0$/,"")+"만":n.toLocaleString("ko-KR")}
+function calendarView(){
+  var m=calM||lastMonth||homeMonth();
+  var first=new Date(YEAR,m-1,1).getDay(), dim=new Date(YEAR,m,0).getDate();
+  var tot={}, nodate=[];
+  VARS.forEach(function(k){S.months[m][k].forEach(function(x){
+    var d=dayNum(x), a=+x.amt||0, ex=isEx(x);
+    if(!d||d>dim){if(a||x.desc)nodate.push({k:k,x:x});return}
+    var t=tot[d]||(tot[d]={s:0,n:0,items:[]});
+    if(!ex)t.s+=a;t.n++;t.items.push({k:k,x:x});
+  })});
+  var max=0;Object.keys(tot).forEach(function(d){max=Math.max(max,tot[d].s)});
+  var isNowM=NOW.getFullYear()===YEAR&&NOW.getMonth()+1===m;
+  if(calSel==null&&isNowM)calSel=NOW.getDate();
+  var cells="";
+  for(var i=0;i<first;i++)cells+='<span class="calcell blank"></span>';
+  for(var d=1;d<=dim;d++){
+    var t=tot[d], h=t&&max?Math.round(8+32*(Math.max(0,t.s)/max)):0;
+    cells+='<button type="button" class="calcell'+(t?" has":"")+(d===calSel?" sel":"")+(isNowM&&d===NOW.getDate()?" today":"")+'" data-act="calday" data-d="'+d+'" style="--h:'+h+'">'
+      +'<b>'+d+'</b>'+(t?'<span>'+(t.s?compactWon(t.s):"0")+'</span><em>'+t.n+'건</em>':"")+'</button>';
+  }
+  var monthTot=Object.keys(tot).reduce(function(s,d){return s+tot[d].s},0);
+  var detail="";
+  var sel=calSel&&tot[calSel];
+  if(calSel){
+    detail='<section class="card" style="padding:14px;margin-top:14px"><h3 style="margin-bottom:6px">'+m+'월 '+calSel+'일</h3>'+(sel?'<div class="srlist">'+sel.items.map(function(o){
+      var x=o.x;return '<div class="srrow caldetail'+(isEx(x)?" ex":"")+'"><span class="srs">'+esc(x.payer||"")+'</span><span class="srl">'+esc(x.desc||"(내용 없음)")+'</span><span class="srp">'+esc(SECS[o.k].split("/")[0])+'</span><span class="sra">'+won(+x.amt||0)+'</span></div>';
+    }).join("")+sline("합계",won(sel.s))+'</div>':'<p class="dim">이 날 입력된 지출이 없어요.</p>')+'</section>';
+  }
+  var nd=nodate.length?'<p class="dim" style="margin-top:10px">날짜가 없는 항목 '+nodate.length+'개 ('+won(nodate.reduce(function(s,o){return s+(isEx(o.x)?0:(+o.x.amt||0))},0))+')는 달력에 표시되지 않아요. 월 화면에서 날짜를 넣어 주세요.</p>':"";
+  return '<div class="pagehead"><div><h1>'+YEAR+'년 '+m+'월 달력</h1></div><div class="pager"><button class="btn" type="button" data-act="calprev"'+(m===1?" disabled":"")+'>이전 달</button><button class="btn" type="button" data-act="calnext"'+(m===12?" disabled":"")+'>다음 달</button><a class="btn" href="#'+YEAR+'-m'+m+'">월 화면</a></div></div>'
+    +'<p class="dim" style="margin:0 0 8px">변동지출 기준 · 날짜가 있는 항목의 합계 '+won(monthTot)+' · 색이 진할수록 그날 지출이 많아요 (제외 항목은 합계에서 빠져요)</p>'
+    +'<section class="card calwrap" style="padding:10px"><div class="calhead">'+["일","월","화","수","목","금","토"].map(function(w,i){return '<span'+(i===0?' class="sun"':i===6?' class="sat"':"")+'>'+w+'</span>'}).join("")+'</div><div class="calgrid">'+cells+'</div></section>'+detail+nd;
+}
+
 /* ---------- shell ---------- */
 var main=document.getElementById("main"), navEl=document.getElementById("nav"), gate=document.getElementById("gate"), appEl=document.getElementById("app");
 function parseHash(){
   var h=location.hash.slice(1);
   /* 주소에 화면 지정이 없으면(처음 로그인·다시 접속) 이번 달 탭을 먼저 보여 준다 */
   if(!h)return {y:YEAR,v:NOW.getFullYear()===YEAR?NOW.getMonth()+1:"summary"};
-  var mm=/^(?:(\d{4})-)?(?:(summary|compare|search|memo|annual|history)|m(\d{1,2}))$/.exec(h);
+  var mm=/^(?:(\d{4})-)?(?:(summary|compare|search|memo|annual|history|home|calendar)|m(\d{1,2}))$/.exec(h);
   var y=YEAR, v="summary";
   if(mm){
     if(mm[2])v=mm[2];
@@ -1861,11 +2002,12 @@ async function switchYear(y){
   }
 }
 function navHTML(){
-  var h='<a class="first'+(cur==="summary"?" on":"")+'" href="#'+YEAR+'-summary"'+(cur==="summary"?' aria-current="page"':"")+'>종합 현황</a>';
+  var h='<a class="first'+(cur==="home"?" on":"")+'" href="#'+YEAR+'-home"'+(cur==="home"?' aria-current="page"':"")+'>홈</a>'
+    +'<a class="first'+(cur==="summary"?" on":"")+'" href="#'+YEAR+'-summary"'+(cur==="summary"?' aria-current="page"':"")+'>종합 현황</a>';
   for(var m=1;m<=12;m++){
     h+='<a class="'+(cur===m?"on":"")+(m===curM?" now":"")+'" href="#'+YEAR+'-m'+m+'"'+(cur===m?' aria-current="page"':"")+'>'+m+'월'+(isLocked(YEAR,m)?'<span class="lk" aria-label="잠김">🔒</span>':"")+'</a>';
   }
-  [["compare","월별 비교"],["annual","연간 결산"],["search","검색"],["memo","메모"]].forEach(function(x,i){
+  [["compare","월별 비교"],["annual","연간 결산"],["calendar","달력"],["search","검색"],["memo","메모"]].forEach(function(x,i){
     h+='<a class="extra'+(i===0?" xfirst":"")+(cur===x[0]?" on":"")+'" href="#'+YEAR+'-'+x[0]+'"'+(cur===x[0]?' aria-current="page"':"")+'>'+x[1]+'</a>';
   });
   h+='<a class="extra moreitem'+(cur==="history"?" on":"")+'" href="#" data-more="1" role="button" aria-haspopup="dialog">더보기</a>';
@@ -1873,10 +2015,11 @@ function navHTML(){
 }
 function render(){
   cur=parseHash().v;
+  if(isMonth())lastMonth=cur;
   renderYearSel();
   navEl.innerHTML=navHTML();
   main.className=isMonth()?"":"narrow";
-  main.innerHTML=cur==="summary"?summaryView():cur==="compare"?compareView():cur==="annual"?annualView():cur==="search"?searchView():cur==="memo"?memoView():cur==="history"?historyView():monthView(cur);
+  main.innerHTML=cur==="summary"?summaryView():cur==="home"?homeView():cur==="calendar"?calendarView():cur==="compare"?compareView():cur==="annual"?annualView():cur==="search"?searchView():cur==="memo"?memoView():cur==="history"?historyView():monthView(cur);
   if(isMonth()){refresh();applyLock()}
   else if(cur==="search")searchRun();
 }
@@ -2008,6 +2151,7 @@ main.addEventListener("click",function(e){
     var act=b.getAttribute("data-act"), d=S.months[cur];
     if(act==="lock"){toggleLock(cur);return}
     if(act==="msum"){openSummary(cur);return}
+    if(act==="gocal"){calM=cur;calSel=null;location.hash=YEAR+"-calendar";return}
     if(isLocked(YEAR,cur)&&act!=="budget")return;
     if(act==="availauto"){
       snapshot(cur+"월 가용금액을 자동 입력했어요.");
