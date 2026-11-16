@@ -159,6 +159,18 @@ nav a.xfirst{margin-left:8px}
 .dangerbtn{color:var(--neg);border-color:var(--neg)}
 .mvgrid input{font:inherit;width:100%;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink)}
 .mvgrid input.amt{text-align:right}
+.toast.notice{bottom:78px;background:var(--accent);color:#fff}
+.quick{display:flex;gap:5px;flex-wrap:wrap;padding:0 12px 8px}
+.qbtn{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:99px;padding:3px 9px;cursor:pointer;white-space:nowrap}
+.qbtn:hover{border-color:var(--accent)}.qbtn:disabled{opacity:.4;cursor:not-allowed}
+.tagrow{font:inherit;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;width:100%;cursor:pointer;color:inherit}
+#mvTags{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 0}
+#pinlock{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+.pincard{width:min(340px,100%);display:grid;gap:10px;text-align:center}
+.pincard h2{font-family:"Gowun Dodum","IBM Plex Sans KR",sans-serif;font-size:24px}
+.pincard p{color:var(--muted);margin:0}
+.pincard input{font:inherit;font-size:24px;letter-spacing:.4em;text-align:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);width:100%}
+.linkbtn{background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:6px}
 .racts{display:flex;align-items:center;justify-content:flex-end}
 .racts .del{padding:4px 5px}
 .racts .mv{font-size:15px;letter-spacing:-1px}
@@ -455,11 +467,23 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
     <div class="brand">조이쀼의 가계부</div>
     <div class="yearbox"><select id="yearSel" class="yearsel" aria-label="연도 선택"></select><button class="btn" id="yearAdd" type="button">연도 추가</button></div>
     <nav id="nav" aria-label="월 선택"></nav>
-    <div class="tools"><div class="sync" id="sync" role="status">불러오는 중…</div><div class="sync" id="bkInfo"></div><button class="btn" id="themeBtn" type="button" aria-label="화면 모드 전환">🌙 다크</button> <button class="btn" id="bkBtn" type="button">백업·복원</button> <button class="btn" id="outBtn" type="button">로그아웃</button></div>
+    <div class="tools"><div class="sync" id="sync" role="status">불러오는 중…</div><div class="sync" id="bkInfo"></div><button class="btn" id="themeBtn" type="button" aria-label="화면 모드 전환">🌙 다크</button> <button class="btn" id="pinBtn" type="button" aria-label="앱 잠금 설정">🔐</button> <button class="btn" id="bkBtn" type="button">백업·복원</button> <button class="btn" id="outBtn" type="button">로그아웃</button></div>
   </aside>
   <main id="main"></main>
 </div>
 <div id="toast" class="toast" role="status" hidden></div>
+<div id="notice" class="toast notice" role="status" hidden></div>
+<div id="pinlock" hidden role="dialog" aria-modal="true" aria-label="앱 잠금">
+  <div class="pincard">
+    <h2>조이쀼의 가계부</h2>
+    <p>PIN을 입력해 주세요</p>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="8" autocomplete="off" aria-label="PIN">
+    <div id="pinMsg" class="msg neg" role="alert"></div>
+    <button class="btn primary" type="button" id="pinOk">열기</button>
+    <button class="btn" type="button" id="pinBio" hidden>생체 인증으로 열기</button>
+    <button class="linkbtn" type="button" id="pinForgot">PIN을 잊었어요</button>
+  </div>
+</div>
 <div id="gate" hidden></div>
 
 <dialog id="ydlg">
@@ -491,6 +515,7 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
   <p id="mvInfo"></p>
   <div class="mvgrid">
     <label for="mvText" id="mvTextLb">항목</label><input id="mvText" autocomplete="off">
+    <span></span><div id="mvTags" aria-label="태그 붙이기"></div>
     <label for="mvAmt">금액</label><input id="mvAmt" class="amt" inputmode="numeric" placeholder="0">
     <label for="mvDay" id="mvDayLb">날짜(일)</label><input id="mvDay" type="number" min="1" max="31" placeholder="비워도 돼요">
     <label for="mvPayer" id="mvPayerLb">결제자</label><select id="mvPayer"><option value="">-</option><option value="옹">옹</option><option value="답">답</option></select>
@@ -527,6 +552,21 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
   </div>
 </dialog>
 
+<dialog id="pinDlg">
+  <h2>앱 잠금 (PIN)</h2>
+  <p id="pinState"></p>
+  <p>PIN은 이 기기에만 저장돼요(폰과 PC가 따로예요). 앱을 열 때와, 2분 넘게 떠나 있다 돌아올 때 물어봐요. 기기를 남이 잠깐 잡았을 때 가계부가 바로 보이지 않게 하는 용도예요.</p>
+  <div class="mvgrid"><label for="pinNew">새 PIN</label><input id="pinNew" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="숫자 4~8자리">
+  <label for="pinNew2">한 번 더</label><input id="pinNew2" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></div>
+  <div class="msg" id="pinSetMsg" role="status"></div>
+  <div class="dlg-actions">
+    <button class="btn primary" type="button" id="pinSave">PIN 저장</button>
+    <button class="btn" type="button" id="pinBioSet" hidden>생체 인증 켜기</button>
+    <button class="btn dangerbtn" type="button" id="pinRemove" hidden>PIN 해제</button>
+    <button class="btn" type="button" id="pinSetClose">닫기</button>
+  </div>
+</dialog>
+
 <dialog id="bk">
   <h2>백업·복원</h2>
   <p>입력한 내용은 DB에 저장돼요. 아래는 백업용 내용이에요(메모·템플릿·예산·잠금·이력도 함께 담겨요). 무료 DB는 자동 백업이 없으니 매달 파일로 받아 두세요. 예전 버전(브라우저 저장 방식)의 백업을 붙여 넣어 복원할 수도 있어요. 복원하면 선택한 연도의 내용이 모두 바뀌어요.</p>
@@ -535,6 +575,8 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
   <div class="msg" id="bkMsg" role="status"></div>
   <div class="dlg-actions">
     <button class="btn primary" type="button" id="bkDown">파일로 내려받기</button>
+    <button class="btn" type="button" id="bkCsv">올해 CSV</button>
+    <button class="btn" type="button" id="bkCsvAll">전체 연도 CSV</button>
     <button class="btn" type="button" id="bkCopy">복사</button>
     <button class="btn primary" type="button" id="bkRestore">이 내용으로 복원</button>
     <button class="btn" type="button" id="bkClose">닫기</button>
@@ -658,7 +700,7 @@ function updateBkInfo(){
   el.classList.toggle("bad",stale);
   if(btn)btn.classList.toggle("alert",stale);
 }
-function schedule(){setStatus("저장 중…");clearTimeout(timer);timer=setTimeout(flush,600)}
+function schedule(){setStatus("저장 중…");persistPending();clearTimeout(timer);timer=setTimeout(flush,600)}
 function markDirty(id){dirty[id]=true;schedule()}
 function markMeta(m){metaDirty[m]=true;schedule()}
 function hasPending(){return flushing||Object.keys(dirty).length>0||Object.keys(dels).length>0||Object.keys(metaDirty).length>0}
@@ -691,8 +733,9 @@ async function flush(){
     }
   }catch(e){bad=true;ms.forEach(function(m){metaDirty[m]=true})}
   flushing=false;
+  persistPending();
   clearTimeout(timer);
-  if(bad){setStatus("저장 실패. 5초 뒤 다시 시도해요",true);timer=setTimeout(flush,5000)}
+  if(bad){setStatus(navigator.onLine===false?"오프라인이에요. 연결되면 자동으로 저장해요":"저장 실패. 5초 뒤 다시 시도해요",true);timer=setTimeout(flush,5000)}
   else if(again||hasPending()){again=false;timer=setTimeout(flush,300)}
   else setStatus("저장됨");
 }
@@ -782,6 +825,7 @@ function cardHTML(sec,d){
   var budBtn=isVar(sec)?'<button class="add" type="button" data-act="budget" data-sec="'+sec+'" title="월 예산 설정">예산</button>':"";
   var varBtns=isVar(sec)?'<button class="add" type="button" data-act="paste" data-sec="'+sec+'" title="여러 줄을 한 번에 붙여넣기">붙여넣기</button><button class="add" type="button" data-act="sortday" data-sec="'+sec+'" title="날짜순으로 정렬">날짜순</button>':"";
   return '<section class="card sec-'+sec+'"><div class="card-h"><h3>'+SECS[sec]+'</h3><span class="card-btns">'+copyBtn+tplBtn+varBtns+budBtn+'<button class="add" type="button" data-act="add" data-sec="'+sec+'">+ 추가</button></span></div>'
+    +(isVar(sec)?quickHTML(sec):"")
     +'<div class="rows">'+d[sec].map(function(x){return rowHTML(sec,x)}).join("")+'</div>'
     +'<div class="card-f">'+foot+'</div>'
     +(isVar(sec)?'<div class="bud" data-budget="'+sec+'" hidden></div>':"")+'</section>';
@@ -875,6 +919,7 @@ function refresh(){
     el.textContent=map[k]==null?"":map[k];
     if(k==="room"){el.classList.toggle("neg",r.room<0);el.classList.toggle("pos",r.room>0)}
   });
+  checkBudgets(r);
   VARS.forEach(function(k){
     var el=document.querySelector('[data-budget="'+k+'"]'), b=+KV.budgets[k]||0;
     if(!el)return;
@@ -1086,6 +1131,7 @@ function setBudget(sec){
   if(s===null)return;
   var n=parseInt(String(s).replace(/\D/g,""),10)||0;
   if(n>0)KV.budgets[sec]=n;else delete KV.budgets[sec];
+  Object.keys(budLvl).forEach(function(k){if(k.slice(-sec.length-1)==="-"+sec)delete budLvl[k]});
   logH(SECS[sec]+" 예산 "+(n>0?won(n):"해제"));
   saveKV("budgets");refresh();
 }
@@ -1096,12 +1142,14 @@ var cmpKey="exp";
 function compareView(){
   var rs=[], key=cmpKey, inc=(key==="inc"||key==="sav");
   for(var m=1;m<=12;m++)rs.push(calc(m));
+  var isTag=key.indexOf("tag:")===0, tagList=tagStats().slice(0,8);
+  if(isTag){var tg=key.slice(4);rs.forEach(function(r,i){r[key]=tagSum(i+1,tg)})}
   var max=0;rs.forEach(function(r){max=Math.max(max,Math.abs(r[key]))});
   var bud=VARS.indexOf(key)>=0?(+KV.budgets[key]||0):0;
   if(bud)max=Math.max(max,bud);
   if(!max)max=1;
-  var label=CMP.filter(function(c){return c[0]===key})[0][1];
-  var chips=CMP.map(function(c){return '<button type="button" class="chip'+(c[0]===key?" on":"")+'" data-act="cmp" data-k="'+c[0]+'">'+c[1]+'</button>'}).join("");
+  var label=isTag?"#"+key.slice(4):CMP.filter(function(c){return c[0]===key})[0][1];
+  var chips=CMP.concat(tagList.map(function(t){return ["tag:"+t.t,"#"+t.t]})).map(function(c){return '<button type="button" class="chip'+(c[0]===key?" on":"")+'" data-act="cmp" data-k="'+c[0]+'">'+c[1]+'</button>'}).join("");
   var vals=rs.map(function(r){return r[key]}), nz=vals.filter(function(v){return v!==0});
   var total=vals.reduce(function(s,v){return s+v},0), avg=nz.length?Math.round(total/nz.length):0;
   var mx=0;vals.forEach(function(v,i){if(Math.abs(v)>Math.abs(vals[mx]))mx=i});
@@ -1211,6 +1259,7 @@ function viewInput(t){
 function viewAct(b){
   var act=b.getAttribute("data-act");
   if(act==="cmp"){cmpKey=b.getAttribute("data-k");render()}
+  else if(act==="tagsearch"){SR.q="#"+b.getAttribute("data-tag");SR.sec="";SR.payer="";SR.all=false;location.hash=YEAR+"-search"}
   else if(act==="memoadd"){
     if(!KV.ok){kvAlert();return}
     KV.memo.unshift({id:newId(),title:"",body:"",t:Date.now()});saveKV("memo");render();
@@ -1286,6 +1335,8 @@ function mvOpen(row){
   document.getElementById("mvInfo").textContent=cur+"월 "+SECS[sec];
   document.getElementById("mvTextLb").textContent=v?"내용":"항목";
   document.getElementById("mvText").value=(v?it.desc:it.name)||"";
+  var mt=document.getElementById("mvTags");
+  mt.innerHTML=v?tagStats().slice(0,8).map(function(t){return '<button type="button" class="qbtn" data-tag="'+esc(t.t)+'">#'+esc(t.t)+'</button>'}).join("")+'<span class="hint" style="margin:0 0 0 2px">내용에 #태그를 붙이면 모아 볼 수 있어요</span>':"";
   var am=document.getElementById("mvAmt");am.inputMode=AMT_MODE;am.value=fmtIn(it.amt);
   var dm=/(\d+)/.exec(it.day||"");document.getElementById("mvDay").value=dm?dm[1]:"";
   document.getElementById("mvPayer").value=it.payer||"";
@@ -1298,6 +1349,11 @@ function mvOpen(row){
   if(mvDlg.showModal)mvDlg.showModal();else mvDlg.setAttribute("open","");
 }
 document.getElementById("mvAmt").addEventListener("input",function(e){parseAmt(e.target)});
+document.getElementById("mvTags").addEventListener("click",function(e){
+  var b=e.target.closest("[data-tag]");if(!b)return;
+  var inp=document.getElementById("mvText"), t="#"+b.getAttribute("data-tag");
+  if(tagsOf(inp.value).indexOf(b.getAttribute("data-tag"))<0)inp.value=(inp.value.replace(/\s+$/,"")+" "+t).trim();
+});
 document.getElementById("mvSave").addEventListener("click",function(){
   var it=mvItem();if(!it)return;
   var v=isVar(mvRow.sec), txt=document.getElementById("mvText").value;
@@ -1395,8 +1451,13 @@ function annualView(){
   var top=items.slice(0,10).map(function(x){return '<a class="srrow" href="#'+YEAR+'-m'+x.m+'"><span class="srd">'+x.m+'월'+(x.day?" "+esc(x.day):"")+'</span><span class="srs"></span><span class="srl">'+esc(x.l)+'</span><span class="srp"></span><span class="sra">'+won(x.a)+'</span></a>'}).join("");
   var vtop=vl.map(function(v){return '<div class="srrow vrow"><span class="srl">'+esc(v.l)+'</span><span class="srd">'+v.n+'번</span><span class="sra">'+won(v.s)+'</span></div>'}).join("");
   var baby="";for(var b=12;b>=1;b--){if(S.months[b].baby){baby='<p class="dim" style="margin-top:10px">하꿍이 저축은 '+b+'월(25일 기준)에 '+won(S.months[b].baby)+'이에요.</p>';break}}
+  var ts=tagStats().slice(0,12);
+  var tagSec='<section class="card" style="padding:14px;margin-top:14px"><h3 style="margin-bottom:6px">태그별 지출</h3>'+(ts.length?'<div class="srlist">'+ts.map(function(t){
+    return '<button type="button" class="srrow vrow tagrow" data-act="tagsearch" data-tag="'+esc(t.t)+'"><span class="srl">#'+esc(t.t)+'</span><span class="srd">'+t.n+'번</span><span class="sra">'+won(t.s)+'</span></button>';
+  }).join("")+'</div>':'<p class="dim">내용에 <b>#카페</b>, <b>#배달</b>처럼 #태그를 붙이면 여기에 모아서 보여요. 항목 ⋯ 메뉴에서 태그를 골라 붙일 수도 있어요.</p>')+'</section>';
   return '<div class="pagehead"><div><h1>'+YEAR+'년 연간 결산</h1></div></div>'+cards
     +'<section class="card" style="padding:14px"><h3 style="margin-bottom:8px">카테고리별 지출</h3><div class="cmplist">'+catRows+'</div>'+baby+'</section>'
+    +tagSec
     +'<section class="card" style="padding:14px;margin-top:14px"><h3 style="margin-bottom:6px">가장 큰 지출 TOP 10</h3><div class="srlist">'+(top||'<p class="dim">아직 없어요.</p>')+'</div></section>'
     +'<section class="card" style="padding:14px;margin-top:14px"><h3 style="margin-bottom:6px">가장 많이 쓴 곳 TOP 10 (내용 기준 합계)</h3><div class="srlist">'+(vtop||'<p class="dim">아직 없어요.</p>')+'</div></section>';
 }
@@ -1409,6 +1470,303 @@ function historyView(){
   return head+'<section class="card" style="padding:10px 14px"><div class="srlist">'+KV.history.map(function(h){
     return '<div class="histrow"><span class="hd">'+new Date(h.t).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})+'</span><span class="hv">'+esc(h.d)+'</span><span class="ht">'+esc(h.x)+'</span></div>';
   }).join("")+'</div></section><p class="dim" style="margin-top:8px">공용 계정이라 누가 했는지는 알 수 없고, 어떤 기기에서 했는지만 보여요. 최근 200건까지 남아요.</p>';
+}
+
+/* ---------- 작은 안내 ---------- */
+var noticeTimer=null;
+function showNotice(msg,ms){
+  var n=document.getElementById("notice");if(!n)return;
+  n.textContent=msg;n.hidden=false;
+  clearTimeout(noticeTimer);noticeTimer=setTimeout(function(){n.hidden=true},ms||6000);
+}
+
+/* ---------- 예산 알림: 80%·100%를 넘는 순간 알려 준다 ---------- */
+var budLvl={};
+function checkBudgets(r){
+  VARS.forEach(function(k){
+    var b=+KV.budgets[k]||0, key=YEAR+"-"+cur+"-"+k;
+    if(!b){delete budLvl[key];return}
+    var spent=r[k], lvl=spent>b?2:spent>=b*0.8?1:0, prev=budLvl[key];
+    budLvl[key]=lvl;
+    if(prev===undefined||lvl<=prev)return;
+    showNotice(lvl===2?SECS[k]+" 예산을 "+won(spent-b)+" 넘었어요 ("+won(spent)+" / "+won(b)+")":SECS[k]+" 예산의 80%를 넘었어요 (남은 "+won(b-spent)+")");
+  });
+}
+
+/* ---------- 태그(#카페): 내용에 붙인 #태그를 모아 본다 ---------- */
+function tagsOf(s){var out=[],m,re=/#([^\s#]+)/g;while((m=re.exec(s||""))!==null)out.push(m[1]);return out}
+function tagStats(){
+  var st={};
+  for(var m=1;m<=12;m++)VARS.forEach(function(k){S.months[m][k].forEach(function(x){
+    if(isEx(x))return;var a=+x.amt||0;
+    tagsOf(x.desc).forEach(function(t){var o=st[t]||(st[t]={t:t,n:0,s:0});o.n++;o.s+=a});
+  })});
+  return Object.keys(st).map(function(k){return st[k]}).sort(function(a,b){return b.s-a.s});
+}
+function tagSum(m,tag){
+  var s=0;
+  VARS.forEach(function(k){S.months[m][k].forEach(function(x){if(!isEx(x)&&tagsOf(x.desc).indexOf(tag)>=0)s+=+x.amt||0})});
+  return s;
+}
+
+/* ---------- 빠른 추가: 자주 쓴 내용을 버튼으로 ---------- */
+function quickHTML(sec){
+  var cnt={};
+  for(var m=1;m<=12;m++)S.months[m][sec].forEach(function(x){
+    var s=(x.desc||"").replace(/^\[제외\]\s*/,"").trim();if(s)cnt[s]=(cnt[s]||0)+1;
+  });
+  var list=Object.keys(cnt).filter(function(k){return cnt[k]>=2}).sort(function(a,b){return cnt[b]-cnt[a]||(a<b?-1:1)}).slice(0,6);
+  if(!list.length)return "";
+  return '<div class="quick" aria-label="자주 쓰는 항목 빠른 추가">'+list.map(function(l){
+    return '<button type="button" class="qbtn" data-act="quick" data-sec="'+sec+'" data-l="'+esc(l)+'" title="'+esc(l)+' 바로 추가">+ '+esc(l.length>9?l.slice(0,9)+"…":l)+'</button>';
+  }).join("")+'</div>';
+}
+function quickAdd(sec,label){
+  var d=S.months[cur][sec], lk=lastLike(sec,label,null);
+  var it=mkItem(cur,sec,{desc:label,amt:lk?+lk.amt:0,payer:lk?lk.payer:"",order:d.length});
+  if(NOW.getFullYear()===YEAR&&NOW.getMonth()+1===cur)it.day=NOW.getDate()+"일";
+  d.push(it);markDirty(it.id);render();
+  var inp=main.querySelector('[data-id="'+it.id+'"] .amt');if(inp){inp.focus();inp.select()}
+}
+
+/* ---------- 엑셀(CSV) 내보내기 ---------- */
+function csvCell(v){v=v==null?"":String(v);return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function saveFile(name,text,mime){
+  var blob=new Blob(["﻿"+text],{type:mime||"text/csv;charset=utf-8"}), a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
+}
+function csvText(rows){
+  var head=["연도","월","구분","내용","날짜","결제자","금액","제외","태그"];
+  return [head].concat(rows.map(function(r){
+    return [r.y,r.m,SECS[r.sec]||r.sec,r.label,r.day,r.payer,r.amt,r.ex?"Y":"",tagsOf(r.label).join(" ")];
+  })).map(function(r){return r.map(csvCell).join(",")}).join("\r\n");
+}
+function yearRows(){
+  var out=[];
+  for(var m=1;m<=12;m++)ALL.forEach(function(sec){
+    S.months[m][sec].forEach(function(x){
+      var v=isVar(sec), label=(v?x.desc:x.name)||"";
+      if(!label&&!(+x.amt))return;
+      out.push({y:YEAR,m:m,sec:sec,label:label,day:v?(x.day||""):"",payer:x.payer||"",amt:+x.amt||0,ex:isEx(x)});
+    });
+  });
+  return out;
+}
+document.getElementById("bkCsv").addEventListener("click",function(){
+  saveFile("가계부-"+YEAR+".csv",csvText(yearRows()));
+  bkMsg.className="msg";bkMsg.textContent=YEAR+"년 CSV 파일을 내려받았어요. 엑셀·구글 시트에서 열 수 있어요.";
+});
+document.getElementById("bkCsvAll").addEventListener("click",async function(){
+  bkMsg.className="msg";bkMsg.textContent="모든 연도를 불러오는 중…";
+  try{
+    var all=[], from=0;
+    for(;;){
+      var r=await sb.from("entries").select("year,month,section,label,day,amount,payer,sort_order").eq("household_id",HH)
+        .order("year",{ascending:true}).order("month",{ascending:true}).order("sort_order",{ascending:true}).range(from,from+999);
+      if(r.error)throw r.error;
+      all=all.concat(r.data);if(r.data.length<1000)break;from+=1000;
+    }
+    var rows=all.map(function(x){var v=isVar(x.section);return {y:x.year,m:x.month,sec:x.section,label:x.label||"",day:v?(x.day||""):"",payer:x.payer||"",amt:Number(x.amount)||0,ex:(x.label||"").indexOf("[제외]")===0}});
+    saveFile("가계부-전체.csv",csvText(rows));
+    bkMsg.textContent="전체 연도 "+rows.length+"줄을 CSV로 내려받았어요.";
+  }catch(e){bkMsg.className="msg neg";bkMsg.textContent="불러오지 못했어요. 네트워크를 확인해 주세요."}
+});
+
+/* ---------- 오프라인 임시 저장: 저장 못 한 변경을 이 기기에 남겨 두었다가 다시 올린다 ---------- */
+var PEND_KEY="gagyebu_pending";
+function persistPending(){
+  try{
+    var rows=[];
+    Object.keys(dirty).forEach(function(id){var it=findItem(id);if(it)rows.push(toRow(it))});
+    var dl=Object.keys(dels), meta=Object.keys(metaDirty).map(function(m){var d=S.months[+m];return {y:YEAR,m:+m,avail:Math.round(d.avail||0),baby:Math.round(d.baby||0)}});
+    if(!rows.length&&!dl.length&&!meta.length)localStorage.removeItem(PEND_KEY);
+    else localStorage.setItem(PEND_KEY,JSON.stringify({hh:HH,rows:rows,dl:dl,meta:meta}));
+  }catch(e){}
+}
+async function pushPending(){
+  var raw=null;try{raw=localStorage.getItem(PEND_KEY)}catch(e){}
+  if(!raw)return 0;
+  var p;try{p=JSON.parse(raw)}catch(e){try{localStorage.removeItem(PEND_KEY)}catch(e2){}return 0}
+  if(!p||p.hh!==HH)return 0;
+  try{
+    for(var u=0;u<p.rows.length;u+=300){var r=await sb.from("entries").upsert(p.rows.slice(u,u+300),{onConflict:"id"});if(r.error)throw r.error}
+    for(var c=0;c<p.dl.length;c+=50){var r2=await sb.from("entries").delete().in("id",p.dl.slice(c,c+50));if(r2.error)throw r2.error}
+    for(var i=0;i<p.meta.length;i++){var x=p.meta[i];var r3=await sb.from("month_meta").upsert({household_id:HH,year:x.y,month:x.m,avail:x.avail,baby_savings:x.baby},{onConflict:"household_id,year,month"});if(r3.error)throw r3.error}
+    localStorage.removeItem(PEND_KEY);
+    return p.rows.length+p.dl.length+p.meta.length;
+  }catch(e){return 0}
+}
+window.addEventListener("online",function(){if(HH){flush();if(rtLost)rtReload()}});
+window.addEventListener("offline",function(){if(HH)setStatus("오프라인이에요. 연결되면 자동으로 저장해요",true)});
+
+/* ---------- 앱 잠금 (PIN·생체 인증): 이 기기에서만 적용돼요 ---------- */
+var PIN_KEY="gagyebu_pin";
+function pinCfg(){try{return JSON.parse(localStorage.getItem(PIN_KEY)||"null")}catch(e){return null}}
+function pinSave(c){try{if(c)localStorage.setItem(PIN_KEY,JSON.stringify(c));else localStorage.removeItem(PIN_KEY)}catch(e){}}
+function bufHex(buf){return Array.prototype.map.call(new Uint8Array(buf),function(b){return ("0"+b.toString(16)).slice(-2)}).join("")}
+async function pinHash(pin,salt){return bufHex(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(salt+":"+pin)))}
+function randHex(n){var a=new Uint8Array(n);crypto.getRandomValues(a);return bufHex(a)}
+function b64(buf){return btoa(String.fromCharCode.apply(null,new Uint8Array(buf)))}
+function unb64(s){var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a}
+var pinEl=document.getElementById("pinlock"), pinInput=document.getElementById("pinInput"), pinMsg=document.getElementById("pinMsg");
+var pinFails=0, pinWait=0, hiddenAt=0;
+function lockApp(){
+  var c=pinCfg();if(!c)return;
+  pinEl.hidden=false;pinMsg.textContent="";pinInput.value="";
+  document.getElementById("pinBio").hidden=!c.bio;
+  setTimeout(function(){try{pinInput.focus()}catch(e){}},60);
+}
+function unlockApp(){pinEl.hidden=true;pinFails=0;pinInput.value="";pinMsg.textContent=""}
+async function pinTry(){
+  var c=pinCfg();if(!c){unlockApp();return}
+  if(Date.now()<pinWait){pinMsg.textContent="잠시 뒤에 다시 해 주세요.";return}
+  var h=await pinHash(pinInput.value,c.salt);
+  if(h===c.hash){unlockApp();return}
+  pinFails++;pinInput.value="";
+  if(pinFails>=5){pinWait=Date.now()+30000;pinFails=0;pinMsg.textContent="5번 틀렸어요. 30초 뒤에 다시 해 주세요."}
+  else pinMsg.textContent="PIN이 달라요 ("+pinFails+"/5)";
+}
+async function bioAuth(c){
+  await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:"public-key",id:unb64(c.bio)}],userVerification:"required",timeout:60000}});
+}
+async function bioRegister(){
+  var cred=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:"조이쀼의 가계부"},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:"gagyebu",displayName:"가계부"},pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required"},timeout:60000}});
+  return b64(cred.rawId);
+}
+document.getElementById("pinOk").addEventListener("click",pinTry);
+pinInput.addEventListener("keydown",function(e){if(e.key==="Enter")pinTry()});
+document.getElementById("pinBio").addEventListener("click",async function(){
+  var c=pinCfg();if(!c||!c.bio)return;
+  try{await bioAuth(c);unlockApp()}catch(e){pinMsg.textContent="생체 인증을 하지 못했어요. PIN으로 열어 주세요."}
+});
+document.getElementById("pinForgot").addEventListener("click",function(){
+  if(!confirm("PIN을 해제하고 로그아웃할까요? 다시 로그인하면 바로 쓸 수 있어요."))return;
+  pinSave(null);unlockApp();signOut();
+});
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState==="hidden"){hiddenAt=Date.now();return}
+  if(pinCfg()&&hiddenAt&&Date.now()-hiddenAt>120000)lockApp();
+});
+var pinDlg=document.getElementById("pinDlg"), pinSetMsg=document.getElementById("pinSetMsg");
+function pinDlgRefresh(){
+  var c=pinCfg(), bioOk=!!(window.PublicKeyCredential&&navigator.credentials);
+  document.getElementById("pinState").textContent=c?"이 기기는 PIN 잠금이 켜져 있어요."+(c.bio?" (생체 인증 사용 중)":""):"이 기기는 잠금이 꺼져 있어요.";
+  document.getElementById("pinRemove").hidden=!c;
+  var bb=document.getElementById("pinBioSet");bb.hidden=!(c&&bioOk);bb.textContent=c&&c.bio?"생체 인증 끄기":"생체 인증 켜기";
+  document.getElementById("pinNew").value="";document.getElementById("pinNew2").value="";
+}
+document.getElementById("pinBtn").addEventListener("click",function(){
+  pinSetMsg.textContent="";pinDlgRefresh();
+  if(pinDlg.showModal)pinDlg.showModal();else pinDlg.setAttribute("open","");
+});
+document.getElementById("pinSetClose").addEventListener("click",function(){if(pinDlg.close)pinDlg.close();else pinDlg.removeAttribute("open")});
+document.getElementById("pinSave").addEventListener("click",async function(){
+  var a=document.getElementById("pinNew").value, b=document.getElementById("pinNew2").value;
+  pinSetMsg.className="msg neg";
+  if(!/^\d{4,8}$/.test(a)){pinSetMsg.textContent="PIN은 숫자 4~8자리로 입력해 주세요.";return}
+  if(a!==b){pinSetMsg.textContent="두 번 입력한 PIN이 달라요.";return}
+  var old=pinCfg(), salt=randHex(8);
+  pinSave({salt:salt,hash:await pinHash(a,salt),bio:old&&old.bio||null});
+  pinSetMsg.className="msg";pinSetMsg.textContent="PIN을 저장했어요. 앱을 닫았다가 열거나 2분 이상 떠나 있다 돌아오면 PIN을 물어봐요.";
+  pinDlgRefresh();
+});
+document.getElementById("pinRemove").addEventListener("click",function(){
+  if(!confirm("이 기기의 PIN 잠금을 해제할까요?"))return;
+  pinSave(null);pinSetMsg.className="msg";pinSetMsg.textContent="PIN 잠금을 해제했어요.";pinDlgRefresh();
+});
+document.getElementById("pinBioSet").addEventListener("click",async function(){
+  var c=pinCfg();if(!c)return;
+  pinSetMsg.className="msg";
+  if(c.bio){c.bio=null;pinSave(c);pinSetMsg.textContent="생체 인증을 껐어요.";pinDlgRefresh();return}
+  try{c.bio=await bioRegister();pinSave(c);pinSetMsg.textContent="생체 인증을 켰어요. 다음 잠금부터 지문·얼굴로도 열 수 있어요.";}
+  catch(e){pinSetMsg.className="msg neg";pinSetMsg.textContent="이 기기·브라우저에서는 생체 인증을 켜지 못했어요. PIN만 쓸 수 있어요."}
+  pinDlgRefresh();
+});
+
+/* ---------- 동시 수정: 상대가 고친 내용을 바로 반영한다 (Supabase Realtime) ---------- */
+var rtChan=null, rtStale=false, rtLost=false, rtEverSub=false;
+function editingNow(){var a=document.activeElement;return !!(a&&main.contains(a)&&/INPUT|SELECT|TEXTAREA/.test(a.tagName))}
+var rtStaleT=null;
+function rtRender(){
+  if(editingNow()){
+    rtStale=true;
+    if(!rtStaleT)rtStaleT=setInterval(function(){
+      if(editingNow())return;
+      clearInterval(rtStaleT);rtStaleT=null;
+      if(rtStale){rtStale=false;render()}
+    },800);
+    return;
+  }
+  render();
+}
+document.getElementById("main").addEventListener("focusout",function(){
+  if(rtStale)setTimeout(function(){if(!editingNow()&&rtStale){rtStale=false;render()}},250);
+});
+function rtRemove(id){
+  var found=false;
+  for(var m=1;m<=12;m++)ALL.forEach(function(k){
+    var l=S.months[m][k], n=l.filter(function(x){return x.id!==id});
+    if(n.length!==l.length){S.months[m][k]=n;found=true}
+  });
+  return found;
+}
+function rtEntry(p){
+  if(!p)return;
+  if(p.eventType==="DELETE"){
+    var id=p.old&&p.old.id;if(!id||dirty[id]||dels[id])return;
+    if(rtRemove(id))rtRender();
+    return;
+  }
+  var r=p.new;
+  if(!r||!r.id||r.household_id!==HH||r.year!==YEAR||!S.months[r.month]||!S.months[r.month][r.section])return;
+  var v=isVar(r.section), it=findItem(r.id);
+  var vals={name:v?"":(r.label||""),desc:v?(r.label||""):"",day:v?(r.day||""):"",amt:Number(r.amount)||0,payer:r.payer||"",order:r.sort_order||0};
+  if(dirty[r.id]){
+    if(it&&(it.amt!==vals.amt||(v?it.desc!==vals.desc:it.name!==vals.name)))showNotice("같은 항목을 상대도 고쳤어요. 내가 입력한 내용으로 저장돼요.");
+    return;
+  }
+  if(dels[r.id])return;
+  if(it){
+    var same=it._m===r.month&&it._s===r.section&&it.name===vals.name&&it.desc===vals.desc&&it.day===vals.day&&it.amt===vals.amt&&it.payer===vals.payer&&it.order===vals.order;
+    if(same)return;
+    if(it._m!==r.month||it._s!==r.section){rtRemove(it.id);it=null}
+  }
+  if(it){it.name=vals.name;it.desc=vals.desc;it.day=vals.day;it.amt=vals.amt;it.payer=vals.payer;it.order=vals.order}
+  else{it=mkItem(r.month,r.section,{id:r.id,name:vals.name,desc:vals.desc,day:vals.day,amt:vals.amt,payer:vals.payer,order:vals.order});S.months[r.month][r.section].push(it)}
+  S.months[r.month][r.section].sort(function(a,b){return a.order-b.order});
+  rtRender();
+}
+function rtMeta(p){
+  var r=p&&p.new;
+  if(!r||r.household_id!==HH||r.year!==YEAR||!S.months[r.month]||metaDirty[r.month])return;
+  var d=S.months[r.month], a=Number(r.avail)||0, b=Number(r.baby_savings)||0;
+  if(d.avail===a&&d.baby===b)return;
+  d.avail=a;d.baby=b;rtRender();
+}
+function rtKV(p){
+  var r=p&&p.new;
+  if(!r||r.household_id!==HH||r.key!=="locks"||kvDirty.locks)return;
+  var v=r.value||{};
+  if(JSON.stringify(v)===JSON.stringify(KV.locks))return;
+  KV.locks=v;rtRender();
+}
+async function rtReload(){
+  if(!HH||hasPending()||editingNow())return;
+  try{await loadAll();await loadKV();rtLost=false;render();setStatus("저장됨")}catch(e){}
+}
+function startRealtime(){
+  if(!sb||!sb.channel||rtChan)return;
+  try{
+    rtChan=sb.channel("gagyebu-live")
+      .on("postgres_changes",{event:"*",schema:"public",table:"entries"},rtEntry)
+      .on("postgres_changes",{event:"*",schema:"public",table:"month_meta"},rtMeta)
+      .on("postgres_changes",{event:"*",schema:"public",table:"app_kv"},rtKV)
+      .subscribe(function(status){
+        if(status==="SUBSCRIBED"){if(rtEverSub&&rtLost)rtReload();rtEverSub=true}
+        else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"||status==="CLOSED")rtLost=true;
+      });
+  }catch(e){rtChan=null}
 }
 
 /* ---------- shell ---------- */
@@ -1563,13 +1921,15 @@ async function start(){
     if(r.error)throw r.error;
     if(!r.data||!r.data.length){showGate("nohh");return}
     HH=r.data[0].household_id;
+    var pushed=await pushPending();
     YEAR=parseHash().y;recalcCurM();
     var n=await loadAll();
     if(n===0&&!wasSeeded()){await seed();setSeeded();await loadAll()}
     else if(n>0){setSeeded()}
     await loadYears();
     await loadKV();
-    hideGate();render();setStatus("저장됨");backupNudge();
+    hideGate();render();setStatus("저장됨");backupNudge();startRealtime();
+    if(pushed)showNotice("저장하지 못했던 변경 "+pushed+"건을 올렸어요.",8000);
   }catch(e){
     showGate("error","데이터를 불러오지 못했어요. 네트워크와 Supabase 설정을 확인해 주세요. ("+(e&&e.message?e.message:"알 수 없는 오류")+")");
   }
@@ -1582,6 +1942,7 @@ function backupNudge(){
 }
 try{if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}catch(e){}
 function boot(){
+  if(pinCfg())lockApp();
   if(!configured()){showGate("setup");return}
   if(!window.supabase){showGate("error","Supabase 라이브러리를 불러오지 못했어요. 네트워크를 확인해 주세요.");return}
   sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
@@ -1628,6 +1989,7 @@ main.addEventListener("click",function(e){
       var ai2=document.getElementById("top-avail");if(ai2)ai2.value=fmtIn(d.avail);
       logH(cur+"월 가용금액을 비상금 누적 "+won(d.avail)+"으로 자동 입력");return;
     }
+    if(act==="quick"){quickAdd(b.getAttribute("data-sec"),b.getAttribute("data-l"));return}
     if(act==="paste"){pstOpen(b.getAttribute("data-sec"));return}
     if(act==="sortday"){sortDay(b.getAttribute("data-sec"));return}
     if(act==="rowmenu"){mvOpen(b.closest("[data-id]"));return}
