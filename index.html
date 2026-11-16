@@ -123,7 +123,7 @@ svg .empty{fill:var(--muted);font-size:14px}
 .add:hover{color:var(--ink);border-color:var(--muted)}
 .row{display:grid;gap:4px;align-items:center;border-bottom:1px solid var(--soft)}
 .r2{grid-template-columns:minmax(0,1fr) 112px 22px}
-.r3{grid-template-columns:minmax(0,1fr) 48px 108px 22px}
+.r3{grid-template-columns:minmax(0,1fr) 22px 108px 22px;align-items:center}
 .r4{grid-template-columns:22px 36px minmax(0,1fr) 70px 14px;gap:3px}
 .row input,.row select{font:inherit;color:inherit;background:transparent;border:0;border-radius:6px;padding:7px 5px;min-width:0;width:100%}
 .row select{appearance:none;-webkit-appearance:none;text-align:center;padding-left:0;padding-right:0;cursor:pointer}
@@ -304,7 +304,7 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
   /* 고정지출: 이름 한 줄 + (결제자, 금액) 한 줄 */
   .r3{grid-template-columns:64px minmax(0,1fr) 34px;grid-template-areas:"name name del" "payer amt amt";gap:0 4px}
   .r3 input[data-f="name"]{grid-area:name}
-  .r3 select{grid-area:payer;border:1px solid var(--line);background:var(--soft);margin:2px 0 6px}
+  .r3 .pay{grid-area:payer;align-self:center;justify-self:start;margin:2px 0 6px}
   .r3 .amt{grid-area:amt;margin:2px 0 6px}
   .r3 .del{grid-area:del}
   /* 변동지출: 내용 한 줄 + 금액 한 줄 (내용이 잘리지 않게) */
@@ -539,7 +539,7 @@ function rowHTML(sec,x){
   var paybtn='<button class="pay" type="button" data-act="pay" data-p="'+esc(x.payer)+'" aria-label="결제자 바꾸기">'+(x.payer||"-")+'</button>';
   var h;
   if(sec==="income"||sec==="saving"){h='<div class="row r2" data-id="'+x.id+'" data-sec="'+sec+'">'+name+amt+del+'</div>'}
-  else if(sec==="fixed"){h='<div class="row r3" data-id="'+x.id+'" data-sec="'+sec+'">'+name+payer+amt+del+'</div>'}
+  else if(sec==="fixed"){h='<div class="row r3" data-id="'+x.id+'" data-sec="'+sec+'">'+name+paybtn+amt+del+'</div>'}
   else{h='<div class="row r4'+(isEx(x)?' ex':'')+'" data-id="'+x.id+'" data-sec="'+sec+'">'+paybtn+''+dayPicker(x)+'<input data-f="desc" placeholder="내용" aria-label="내용" value="'+esc(x.desc)+'">'+amt+del+'</div>'}
   return h;
 }
@@ -888,6 +888,7 @@ main.addEventListener("click",function(e){
     }else if(act==="copysec"){
       copySection(b.getAttribute("data-sec"),cur);
     }else if(act==="del"){
+      if(!confirm("지우시겠습니까?"))return;
       var row=b.closest("[data-id]"), sc=row.getAttribute("data-sec"), id=row.getAttribute("data-id");
       d[sc]=d[sc].filter(function(x){return x.id!==id});
       delete dirty[id];dels[id]=true;schedule();render();
