@@ -950,7 +950,7 @@ function summaryView(){
 
 
 /* ---------- 공용 저장소(app_kv): 템플릿·예산·메모 ---------- */
-var KV={templates:{income:[],saving:[],fixed:[]},budgets:{},memo:[],locks:{},history:[],grad:{total:0,pay:[],hold:[]},loan:{loans:[]},ok:false}, kvDirty={}, kvTimer={};
+var KV={templates:{income:[],saving:[],fixed:[]},budgets:{},memo:[],locks:{},history:[],ok:false}, kvDirty={}, kvTimer={};
 var LOCK_LS="gagyebu_locks";
 /* 월 잠금: app_kv가 있으면 부부 공용, 없으면 이 기기에만 저장 */
 function isLocked(y,m){return !!KV.locks[y+"-"+m]}
@@ -983,13 +983,11 @@ async function loadKV(){
       else if(x.key==="memo")KV.memo=(x.value&&x.value.notes)||[];
       else if(x.key==="locks")KV.locks=x.value||{};
       else if(x.key==="history")KV.history=(x.value&&x.value.items)||[];
-      else if(x.key==="grad")KV.grad=Object.assign({total:0,pay:[],hold:[]},x.value||{});
-      else if(x.key==="loan")KV.loan=Object.assign({loans:[]},x.value||{});
     });
   }catch(e){KV.ok=false}
   if(!KV.ok){try{KV.locks=JSON.parse(localStorage.getItem(LOCK_LS)||"{}")||{}}catch(e){KV.locks={}}}
 }
-function kvVal(key){return key==="templates"?KV.templates:key==="budgets"?KV.budgets:key==="locks"?KV.locks:key==="history"?{items:KV.history}:key==="grad"?KV.grad:key==="loan"?KV.loan:{notes:KV.memo}}
+function kvVal(key){return key==="templates"?KV.templates:key==="budgets"?KV.budgets:key==="locks"?KV.locks:key==="history"?{items:KV.history}:{notes:KV.memo}}
 async function flushKV(key){
   clearTimeout(kvTimer[key]);
   if(!kvDirty[key])return;
@@ -1202,13 +1200,6 @@ function viewInput(t){
     if(sf==="all")SR.all=t.checked;else SR[sf]=t.value;
     clearTimeout(srTimer);srTimer=setTimeout(searchRun,SR.all?450:120);return;
   }
-  var kp=t.getAttribute("data-kv");
-  if(kp){
-    var parts=kp.split("."), last=parts[parts.length-1], par=pathGet(parts.slice(0,-1)), kt=t.getAttribute("data-kt");
-    if(!par)return;
-    par[last]=kt==="n"?parseAmt(t):kt==="r"?(parseFloat(String(t.value).replace(",","."))||0):t.value;
-    saveKV(parts[0]);calcKV();return;
-  }
   var mf=t.getAttribute("data-mf");
   if(mf){
     var card=t.closest("[data-mid]");if(!card)return;
@@ -1219,14 +1210,6 @@ function viewInput(t){
 function viewAct(b){
   var act=b.getAttribute("data-act");
   if(act==="cmp"){cmpKey=b.getAttribute("data-k");render()}
-  else if(act==="kvadd"){
-    var ap=b.getAttribute("data-path").split("."), arr=pathGet(ap);if(!arr)return;
-    arr.push(kvDefault(ap[ap.length-1]));saveKV(ap[0]);render();
-  }else if(act==="kvdel"){
-    if(!confirm("지우시겠습니까?"))return;
-    var dp=b.getAttribute("data-path").split("."), pa=pathGet(dp.slice(0,-1));if(!pa)return;
-    pa.splice(+dp[dp.length-1],1);saveKV(dp[0]);render();
-  }
   else if(act==="memoadd"){
     if(!KV.ok){kvAlert();return}
     KV.memo.unshift({id:newId(),title:"",body:"",t:Date.now()});saveKV("memo");render();
@@ -1417,73 +1400,6 @@ function annualView(){
     +'<section class="card" style="padding:14px;margin-top:14px"><h3 style="margin-bottom:6px">가장 많이 쓴 곳 TOP 10 (내용 기준 합계)</h3><div class="srlist">'+(vtop||'<p class="dim">아직 없어요.</p>')+'</div></section>';
 }
 
-/* ---------- 대출·대학원 (공용 저장소) ---------- */
-function pathGet(parts){var o=KV;for(var i=0;i<parts.length;i++){if(o==null)return null;o=o[parts[i]]}return o}
-function kvIn(path,val,kind,extra){
-  if(kind==="n")return '<input class="amt" data-kv="'+path+'" data-kt="n" inputmode="'+AMT_MODE+'" placeholder="0" value="'+fmtIn(val)+'" '+(extra||"")+'>';
-  if(kind==="r")return '<input data-kv="'+path+'" data-kt="r" inputmode="decimal" placeholder="0" value="'+(val||"")+'" '+(extra||"")+'>';
-  if(kind==="d")return '<input type="date" data-kv="'+path+'" data-kt="s" value="'+esc(val||"")+'" '+(extra||"")+'>';
-  return '<input data-kv="'+path+'" data-kt="s" autocomplete="off" value="'+esc(val||"")+'" '+(extra||"")+'>';
-}
-function kvc(k,c,cl,key){return '<div class="kvc'+(key?" key":"")+'"><div class="k">'+k+'</div><div class="v '+(cl||"")+'" data-c="'+c+'"></div></div>'}
-function delBtn(path){return '<button class="del" type="button" data-act="kvdel" data-path="'+path+'" aria-label="삭제">×</button>'}
-function loanView(){
-  var head='<div class="pagehead"><div><h1>대출 정산현황</h1></div><div class="pager"><button class="btn" type="button" data-act="kvadd" data-path="loan.loans">+ 대출 추가</button></div></div>';
-  if(!KV.ok)return head+kvSetupHTML();
-  var L=KV.loan.loans;
-  var cards=L.map(function(ln,i){
-    var P="loan.loans."+i;
-    var evs=(ln.events||[]).map(function(ev,j){
-      var Q=P+".events."+j;
-      return '<div class="kvrow ev">'+kvIn(Q+".date",ev.date,"d")+kvIn(Q+".label",ev.label,"s",'placeholder="내용 (예: 1차 중도상환)"')+kvIn(Q+".repay",ev.repay,"n",'aria-label="상환금액" placeholder="상환금액"')+kvIn(Q+".interest",ev.interest,"n",'aria-label="이자" placeholder="이자"')+delBtn(Q)+'</div>';
-    }).join("");
-    return '<section class="card kvlist" style="padding:14px;margin-bottom:14px"><div class="card-h" style="padding:0 0 8px"><h3>'+esc(ln.name||"대출")+'</h3>'+delBtn(P)+'</div>'
-      +'<div class="kvrow" style="grid-template-columns:minmax(0,1fr) 150px">'+kvIn(P+".name",ln.name,"s",'placeholder="대출 이름"')+kvIn(P+".date",ln.date,"d",'aria-label="빌린 날짜"')+'</div>'
-      +'<div class="kvrow" style="grid-template-columns:minmax(0,1fr) 110px"><div>'+kvIn(P+".amt",ln.amt,"n",'aria-label="빌린 금액" placeholder="빌린 금액"')+'</div><div style="display:flex;gap:4px;align-items:center">'+kvIn(P+".rate",ln.rate,"r",'aria-label="이율(%)" placeholder="이율"')+'%</div></div>'
-      +'<div class="kvgrid" style="margin-top:6px">'+kvc("남은 잔액","bal"+i,"",1)+kvc("갚은 원금","rep"+i)+kvc("낸 이자(기록)","int"+i)+kvc("예상 월 이자","mon"+i)+'</div>'
-      +'<div class="kvsub">중도상환·이자 기록 (날짜 · 내용 · 상환금액 · 이자)</div>'+evs
-      +'<button class="add" type="button" data-act="kvadd" data-path="'+P+'.events">+ 기록 추가</button></section>';
-  }).join("");
-  var im=[], tot=0;
-  for(var m=1;m<=12;m++)S.months[m].fixed.forEach(function(x){if(!isEx(x)&&/대출/.test(x.name||"")&&/이자/.test(x.name||"")&&(+x.amt)){im.push([m,+x.amt]);tot+=+x.amt}});
-  var ib='<section class="card" style="padding:14px"><h3 style="margin-bottom:6px">'+YEAR+'년 월별 대출 이자 상환 (고정지출에서 가져와요)</h3>'
-    +(im.length?im.map(function(x){return sline(x[0]+"월",won(x[1]))}).join("")+sline("합계",won(tot)):'<p class="dim">"N월 대출 이자상환" 고정지출 항목이 있으면 여기에 모아 보여요.</p>')+'</section>';
-  return head+(cards||'<p class="dim">등록된 대출이 없어요. "+ 대출 추가"로 시작해 보세요.</p>')+ib;
-}
-function gradView(){
-  var head='<div class="pagehead"><div><h1>대학원 등록금 현황</h1></div></div>';
-  if(!KV.ok)return head+kvSetupHTML();
-  var G=KV.grad;
-  function list(arr,key,ph){
-    return (arr||[]).map(function(x,i){var Q="grad."+key+"."+i;return '<div class="kvrow">'+kvIn(Q+".label",x.label,"s",'placeholder="'+ph+'"')+kvIn(Q+".amt",x.amt,"n")+delBtn(Q)+'</div>'}).join("")
-      +'<button class="add" type="button" data-act="kvadd" data-path="grad.'+key+'">+ 추가</button>';
-  }
-  return head
-    +'<div class="kvgrid">'+kvc("총 금액","gtotal")+kvc("등록금 낸 돈","gpaid")+kvc("남은 금액","grest")+kvc("갖고 있는 돈","ghold")+kvc("모아야 할 돈","gneed","",1)+'</div>'
-    +'<section class="card kvlist" style="padding:14px;margin-bottom:14px"><h3>총 금액</h3><div class="kvrow" style="grid-template-columns:minmax(0,1fr)">'+kvIn("grad.total",G.total,"n",'aria-label="총 금액"')+'</div></section>'
-    +'<section class="card kvlist" style="padding:14px;margin-bottom:14px"><h3>등록금 낸 돈</h3>'+list(G.pay,"pay","내용 (예: 26년 2월)")+'</section>'
-    +'<section class="card kvlist" style="padding:14px"><h3>갖고 있는 돈</h3>'+list(G.hold,"hold","내용 (예: 옹우저축)")+'</section>'
-    +'<p class="dim" style="margin-top:10px">남은 금액 = 총 금액 − 낸 돈, 모아야 할 돈 = 남은 금액 − 갖고 있는 돈이에요. 음수면 여유가 있다는 뜻이에요.</p>';
-}
-function calcKV(){
-  function put(k,v,cl){var el=main.querySelector('[data-c="'+k+'"]');if(el){el.textContent=won(v);el.classList.toggle("neg",cl==="n"&&v>0);el.classList.toggle("pos",cl==="n"&&v<=0)}}
-  if(cur==="loan")KV.loan.loans.forEach(function(ln,i){
-    var rep=0,it=0;(ln.events||[]).forEach(function(e){rep+=+e.repay||0;it+=+e.interest||0});
-    var bal=(+ln.amt||0)-rep;
-    put("bal"+i,bal);put("rep"+i,rep);put("int"+i,it);put("mon"+i,Math.round(bal*(+ln.rate||0)/100/12));
-  });
-  if(cur==="grad"){
-    var G=KV.grad, sm=function(a){return (a||[]).reduce(function(s,x){return s+(+x.amt||0)},0)};
-    var paid=sm(G.pay), rest=(+G.total||0)-paid, hold=sm(G.hold);
-    put("gtotal",+G.total||0);put("gpaid",paid);put("grest",rest);put("ghold",hold);put("gneed",rest-hold,"n");
-  }
-}
-function kvDefault(last){
-  if(last==="loans")return {name:"",date:"",amt:0,rate:0,events:[]};
-  if(last==="events")return {date:"",label:"",repay:0,interest:0};
-  return {label:"",amt:0};
-}
-
 /* ---------- 변경 이력 화면 ---------- */
 function historyView(){
   var head='<div class="pagehead"><div><h1>변경 이력</h1></div></div>';
@@ -1497,7 +1413,7 @@ function historyView(){
 /* ---------- shell ---------- */
 var main=document.getElementById("main"), navEl=document.getElementById("nav"), gate=document.getElementById("gate"), appEl=document.getElementById("app");
 function parseHash(){
-  var h=location.hash.slice(1), mm=/^(?:(\d{4})-)?(?:(summary|compare|search|memo|annual|loan|grad|history)|m(\d{1,2}))$/.exec(h);
+  var h=location.hash.slice(1), mm=/^(?:(\d{4})-)?(?:(summary|compare|search|memo|annual|history)|m(\d{1,2}))$/.exec(h);
   var y=YEAR, v="summary";
   if(mm){
     if(mm[2])v=mm[2];
@@ -1562,7 +1478,7 @@ function navHTML(){
   for(var m=1;m<=12;m++){
     h+='<a class="'+(cur===m?"on":"")+(m===curM?" now":"")+'" href="#'+YEAR+'-m'+m+'"'+(cur===m?' aria-current="page"':"")+'>'+m+'월'+(isLocked(YEAR,m)?'<span class="lk" aria-label="잠김">🔒</span>':"")+'</a>';
   }
-  [["compare","월별 비교"],["annual","연간 결산"],["search","검색"],["memo","메모"],["loan","대출"],["grad","대학원"],["history","이력"]].forEach(function(x,i){
+  [["compare","월별 비교"],["annual","연간 결산"],["search","검색"],["memo","메모"],["history","이력"]].forEach(function(x,i){
     h+='<a class="extra'+(i===0?" xfirst":"")+(cur===x[0]?" on":"")+'" href="#'+YEAR+'-'+x[0]+'"'+(cur===x[0]?' aria-current="page"':"")+'>'+x[1]+'</a>';
   });
   return h;
@@ -1572,10 +1488,9 @@ function render(){
   renderYearSel();
   navEl.innerHTML=navHTML();
   main.className=isMonth()?"":"narrow";
-  main.innerHTML=cur==="summary"?summaryView():cur==="compare"?compareView():cur==="annual"?annualView():cur==="search"?searchView():cur==="memo"?memoView():cur==="loan"?loanView():cur==="grad"?gradView():cur==="history"?historyView():monthView(cur);
+  main.innerHTML=cur==="summary"?summaryView():cur==="compare"?compareView():cur==="annual"?annualView():cur==="search"?searchView():cur==="memo"?memoView():cur==="history"?historyView():monthView(cur);
   if(isMonth()){refresh();applyLock()}
   else if(cur==="search")searchRun();
-  else if(cur==="loan"||cur==="grad")calcKV();
 }
 var hashBusy=false, hashAgain=false;
 async function onHash(){
