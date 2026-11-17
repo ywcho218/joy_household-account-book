@@ -1,5 +1,5 @@
 # 무료 Supabase 프로젝트가 한동안 접속이 없어 일시정지되지 않도록, 주 2회 DB에 조회 요청을 보냅니다.
-# 요청이 실패하면(프로젝트가 멈췄거나 장애) 이 작업이 실패로 표시되고 GitHub가 메일로 알려 줍니다.
+# 프로젝트가 멈췄거나 장애가 있으면 이 작업이 실패로 표시되고 GitHub가 메일로 알려 줍니다.
 name: Keep Supabase awake
 
 on:
@@ -13,8 +13,12 @@ jobs:
     steps:
       - name: Query Supabase
         run: |
-          URL="https://tkfbzihbitroqqvvylhj.supabase.co/rest/v1/households?select=id&limit=1"
+          URL="https://tkfbzihbitroqqvvylhj.supabase.co/rest/v1/app_kv?select=key&limit=1"
           KEY="sb_publishable_jWtC3nblSCcKTyV-p8lTkQ_n_X0JJnH"
-          code=$(curl -s -o /dev/null -w "%{http_code}" -H "apikey: $KEY" -H "Authorization: Bearer $KEY" "$URL")
+          code=$(curl -s -m 30 -o body.txt -w "%{http_code}" -H "apikey: $KEY" -H "Authorization: Bearer $KEY" "$URL")
           echo "Supabase status: $code"
-          test "$code" = "200"
+          head -c 300 body.txt; echo
+          if [ "$code" = "200" ]; then exit 0; fi
+          # 로그인 없는 요청이라 'permission denied'(42501)가 오는 것도 DB가 깨어 응답했다는 뜻이라 정상으로 본다
+          if [ "$code" = "401" ] && grep -q 42501 body.txt; then echo "DB responded (permission denied is expected)"; exit 0; fi
+          exit 1
