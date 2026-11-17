@@ -2,3 +2,5 @@ backup-*.json
 *백업*.json
 excluded-items.json
 *-seed.sql
+*.csv
+end/
