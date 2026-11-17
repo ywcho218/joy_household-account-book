@@ -35,13 +35,14 @@ supabase-realtime.sql         실시간 동시 수정 반영용 설정
 | 10 | `offline-pin.js` | 오프라인 임시 저장, 앱 잠금(PIN·생체 인증) |
 | 11 | `realtime.js` | 실시간 동시 수정 반영 |
 | 12 | `insights.js` | 중복 항목 감지, 홈 대시보드, 달력 보기 |
-| 13 | `shell.js` | 라우팅·메뉴·화면 그리기, 로그인, 시작(`boot`), 이벤트 연결, 백업·복원, 테마, 더보기 |
+| 13 | `car.js` | 차계부: 주유·보험·세금·정비 기록, 요약(유지비·연비 추정), 기록 추가·수정 모달, CSV |
+| 14 | `shell.js` | 라우팅·메뉴·화면 그리기, 로그인, 시작(`boot`), 이벤트 연결, 백업·복원, 테마, 더보기 |
 
 ## 데이터 흐름 한눈에
 
 - 상태: `S.months[1..12][섹션]` 배열 (섹션: income, saving, fixed, food, living, life, etc)
 - 입력 → `dirty`/`dels`/`metaDirty`에 표시 → `schedule()`이 0.6초 뒤 `flush()`로 Supabase에 저장 (저장 못 하면 이 기기에 남겨 두었다가 다시 올려요)
-- 공용 저장소 `app_kv`의 키: `templates`, `budgets`, `memo`, `locks`, `history`
+- 공용 저장소 `app_kv`의 키: `templates`, `budgets`, `memo`, `locks`, `history`, `car`(차계부; 기록 id별로 병합해서 저장)
 - 화면은 주소의 `#연도-화면`(예: `#2026-m10`, `#2026-home`)으로 정해지고, `render()`가 해당 `xxxView()`로 `main`을 통째로 다시 그려요.
 
 ## 수정할 때 주의

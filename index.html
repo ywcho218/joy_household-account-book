@@ -109,6 +109,29 @@
   </div>
 </dialog>
 
+<dialog id="carDlg">
+  <h2 id="carTitle">차계부 기록</h2>
+  <div class="mvgrid">
+    <label for="carDate">날짜</label><input id="carDate" type="date">
+    <label for="carKind">구분</label><select id="carKind"></select>
+    <label for="carPlace">장소</label><input id="carPlace" list="carPlaces" autocomplete="off" placeholder="예: GS칼텍스 신우주유소">
+    <label for="carUnit" id="carUnitRow">단가</label><input id="carUnit" class="amt" inputmode="numeric" placeholder="원/L">
+    <label for="carLiters" id="carLitersRow">리터</label><input id="carLiters" inputmode="decimal" placeholder="주유량(L)">
+    <label for="carAmt">금액</label><input id="carAmt" class="amt" inputmode="numeric" placeholder="0">
+    <label for="carDisc">할인</label><input id="carDisc" class="amt" inputmode="numeric" placeholder="쿠폰·할인 금액">
+    <label for="carPay">결제수단</label><input id="carPay" list="carPays" autocomplete="off" placeholder="예: 하나카드, GS상품권">
+    <label for="carOdo">키로수</label><input id="carOdo" class="amt" inputmode="numeric" placeholder="계기판 km">
+    <label for="carMemo">메모</label><input id="carMemo" autocomplete="off">
+  </div>
+  <datalist id="carPlaces"></datalist><datalist id="carPays"></datalist>
+  <p class="hint" id="carHint" style="margin-top:8px"></p>
+  <div class="dlg-actions">
+    <button class="btn primary" type="button" id="carSave">저장</button>
+    <button class="btn dangerbtn" type="button" id="carDel" hidden>삭제</button>
+    <button class="btn" type="button" id="carClose">닫기</button>
+  </div>
+</dialog>
+
 <dialog id="more">
   <h2>더보기</h2>
   <div class="kvsub" style="margin-top:0">통계</div>
@@ -175,6 +198,7 @@
 <script src="js/offline-pin.js"></script>
 <script src="js/realtime.js"></script>
 <script src="js/insights.js"></script>
+<script src="js/car.js"></script>
 <script src="js/shell.js"></script>
 </body>
 </html>

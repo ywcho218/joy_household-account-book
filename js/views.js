@@ -126,6 +126,7 @@ function viewAct(b){
   else if(act==="calprev"){calM=Math.max(1,(calM||lastMonth||homeMonth())-1);calSel=null;render()}
   else if(act==="calnext"){calM=Math.min(12,(calM||lastMonth||homeMonth())+1);calSel=null;render()}
   else if(act==="calday"){calSel=+b.getAttribute("data-d");render()}
+  else if(/^car/.test(act)){carAct(b)}
   else if(act==="tagsearch"){SR.q="#"+b.getAttribute("data-tag");SR.sec="";SR.payer="";SR.all=false;location.hash=YEAR+"-search"}
   else if(act==="memoadd"){
     if(!KV.ok){kvAlert();return}

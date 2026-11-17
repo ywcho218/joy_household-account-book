@@ -62,6 +62,13 @@ function rtMeta(p){
 }
 function rtKV(p){
   var r=p&&p.new;
+  if(r&&r.household_id===HH&&r.key==="car"){
+    if(kvDirty.car||Object.keys(carDirtyIds).length||Object.keys(carDelIds).length)return;
+    var before=JSON.stringify(KV.car.records);
+    carApplyServer((r.value&&r.value.records)||[]);
+    if(cur==="car"&&JSON.stringify(KV.car.records)!==before)rtRender();
+    return;
+  }
   if(!r||r.household_id!==HH||r.key!=="locks"||kvDirty.locks)return;
   var v=r.value||{};
   if(JSON.stringify(v)===JSON.stringify(KV.locks))return;

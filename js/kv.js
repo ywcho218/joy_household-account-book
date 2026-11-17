@@ -34,12 +34,14 @@ async function loadKV(){
       else if(x.key==="memo")KV.memo=(x.value&&x.value.notes)||[];
       else if(x.key==="locks")KV.locks=x.value||{};
       else if(x.key==="history")KV.history=(x.value&&x.value.items)||[];
+      else if(x.key==="car")KV.car=carNorm(x.value);
     });
   }catch(e){KV.ok=false}
   if(!KV.ok){try{KV.locks=JSON.parse(localStorage.getItem(LOCK_LS)||"{}")||{}}catch(e){KV.locks={}}}
 }
-function kvVal(key){return key==="templates"?KV.templates:key==="budgets"?KV.budgets:key==="locks"?KV.locks:key==="history"?{items:KV.history}:{notes:KV.memo}}
+function kvVal(key){return key==="templates"?KV.templates:key==="budgets"?KV.budgets:key==="locks"?KV.locks:key==="history"?{items:KV.history}:key==="car"?{records:KV.car.records}:{notes:KV.memo}}
 async function flushKV(key){
+  if(key==="car")return flushCar();
   clearTimeout(kvTimer[key]);
   if(!kvDirty[key])return;
   delete kvDirty[key];

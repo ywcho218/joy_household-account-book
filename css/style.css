@@ -466,3 +466,19 @@ dialog input[type=number]{font:inherit;width:100%;padding:9px 11px;border:1px so
   .tbl{min-width:760px}
   .tbl td,.tbl th{padding:10px 9px;font-size:14px}
 }
+
+/* 차계부 */
+.srrow.carrow{grid-template-columns:76px 88px minmax(0,1fr) 120px;width:100%;text-align:left;font:inherit;background:none;border:0;border-bottom:1px solid var(--line);color:inherit;cursor:pointer}
+.srrow.carrow small{display:block;color:var(--muted);font-size:11.5px;white-space:normal;margin-top:1px}
+.srrow.carrow .srl{white-space:normal}
+.srrow.carrow .sra{font-weight:600}
+.srrow.carrow .sra small{font-weight:400}
+.kindtag{font-style:normal;font-size:11.5px;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--ink);white-space:nowrap}
+.kindtag[data-k="주유"]{background:color-mix(in srgb,var(--c-living) 28%,transparent)}
+.kindtag[data-k="보험"]{background:color-mix(in srgb,var(--c-fixed) 28%,transparent)}
+.kindtag[data-k="세금·등록"]{background:color-mix(in srgb,var(--c-life) 28%,transparent)}
+.kindtag[data-k="정비·소모품"]{background:color-mix(in srgb,var(--c-food) 28%,transparent)}
+dialog#carDlg{max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:720px){
+  .srrow.carrow{grid-template-columns:64px minmax(0,1fr) 96px;grid-template-areas:"d l a" "s l a"}
+}
