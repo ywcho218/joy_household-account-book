@@ -51,6 +51,7 @@ function monthView(m){
     +'<span class="hint" data-bind="babyHint"></span></div>';
   return '<div class="pagehead"><div><h1>'+YEAR+'년 '+m+'월 〈조이쀼의 가계부〉</h1><div class="dupnote" data-bind="dupNote"></div></div>'
     +'<div class="pager"><button class="btn" type="button" data-act="gocal">달력</button><button class="btn" type="button" data-go="m'+(m-1)+'"'+(m===1?" disabled":"")+'>이전 달</button><button class="btn" type="button" data-go="m'+(m+1)+'"'+(m===12?" disabled":"")+'>다음 달</button></div></div>'
+    +qlineHTML()
     +'<div class="sheetwrap"><div class="sheet">'
       +'<div class="zone z1">'+cardHTML("income",d)+cardHTML("saving",d)+spend+room+'</div>'
       +'<div class="zone z2">'+cardHTML("fixed",d)+avail+settle+'</div>'

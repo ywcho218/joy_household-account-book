@@ -108,6 +108,7 @@ function memoView(){
   }).join("")+'</div>';
 }
 function viewInput(t){
+  if(t.hasAttribute("data-tx")){taxInput(t);return}
   var sf=t.getAttribute("data-sf");
   if(sf){
     if(sf==="all")SR.all=t.checked;else SR[sf]=t.value;
@@ -127,6 +128,8 @@ function viewAct(b){
   else if(act==="calnext"){calM=Math.min(12,(calM||lastMonth||homeMonth())+1);calSel=null;render()}
   else if(act==="calday"){calSel=+b.getAttribute("data-d");render()}
   else if(/^car/.test(act)){carAct(b)}
+  else if(/^proj/.test(act)){projAct(b)}
+  else if(/^tax/.test(act)){taxAct(b)}
   else if(act==="tagsearch"){SR.q="#"+b.getAttribute("data-tag");SR.sec="";SR.payer="";SR.all=false;location.hash=YEAR+"-search"}
   else if(act==="memoadd"){
     if(!KV.ok){kvAlert();return}

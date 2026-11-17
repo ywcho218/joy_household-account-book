@@ -6,7 +6,10 @@ function parseHash(){
   var h=location.hash.slice(1);
   /* 주소에 화면 지정이 없으면(처음 로그인·다시 접속) 이번 달 탭을 먼저 보여 준다 */
   if(!h)return {y:YEAR,v:NOW.getFullYear()===YEAR?NOW.getMonth()+1:"summary"};
-  var mm=/^(?:(\d{4})-)?(?:(summary|compare|search|memo|annual|history|home|calendar|car)|m(\d{1,2}))$/.exec(h);
+  /* 홈 화면 바로가기: #add = 이번 달 한 줄 입력, #caradd = 차계부 기록 추가 */
+  if(h==="add")return {y:YEAR,v:NOW.getFullYear()===YEAR?NOW.getMonth()+1:"home"};
+  if(h==="caradd")return {y:YEAR,v:"car"};
+  var mm=/^(?:(\d{4})-)?(?:(summary|compare|search|memo|annual|history|home|calendar|car|projects|tax)|m(\d{1,2}))$/.exec(h);
   var y=YEAR, v="summary";
   if(mm){
     if(mm[2])v=mm[2];
@@ -75,7 +78,7 @@ function navHTML(){
   [["calendar","달력"],["car","차계부"],["search","검색"],["memo","메모"]].forEach(function(x,i){
     h+='<a class="extra'+(i===0?" xfirst":"")+(cur===x[0]?" on":"")+'" href="#'+YEAR+'-'+x[0]+'"'+(cur===x[0]?' aria-current="page"':"")+'>'+x[1]+'</a>';
   });
-  h+='<a class="extra moreitem'+(cur==="history"||cur==="compare"||cur==="annual"?" on":"")+'" href="#" data-more="1" role="button" aria-haspopup="dialog">더보기</a>';
+  h+='<a class="extra moreitem'+(cur==="history"||cur==="compare"||cur==="annual"||cur==="projects"||cur==="tax"?" on":"")+'" href="#" data-more="1" role="button" aria-haspopup="dialog">더보기</a>';
   return h;
 }
 function render(){
@@ -84,9 +87,11 @@ function render(){
   renderYearSel();
   navEl.innerHTML=navHTML();
   main.className=isMonth()?"":"narrow";
-  main.innerHTML=cur==="summary"?summaryView():cur==="home"?homeView():cur==="calendar"?calendarView():cur==="car"?carView():cur==="compare"?compareView():cur==="annual"?annualView():cur==="search"?searchView():cur==="memo"?memoView():cur==="history"?historyView():monthView(cur);
+  main.innerHTML=cur==="summary"?summaryView():cur==="home"?homeView():cur==="calendar"?calendarView():cur==="car"?carView():cur==="projects"?projView():cur==="tax"?taxView():cur==="compare"?compareView():cur==="annual"?annualView():cur==="search"?searchView():cur==="memo"?memoView():cur==="history"?historyView():monthView(cur);
   if(isMonth()){refresh();applyLock()}
   else if(cur==="search")searchRun();
+  else if(cur==="projects")projLoad();
+  handleLaunchHash();
 }
 var hashBusy=false, hashAgain=false;
 async function onHash(){
@@ -302,7 +307,7 @@ function exportJSON(){
     out.months[m]=o;
   }
   /* 연도와 상관없는 데이터(메모·템플릿·예산·잠금·이력)도 같이 담는다 */
-  out.extra={templates:KV.templates,budgets:KV.budgets,memo:KV.memo,locks:KV.locks,history:KV.history,car:KV.car};
+  out.extra={templates:KV.templates,budgets:KV.budgets,memo:KV.memo,locks:KV.locks,history:KV.history,car:KV.car,projects:KV.projects,tax:KV.tax};
   return JSON.stringify(out);
 }
 function importMonths(obj){
@@ -362,6 +367,8 @@ bkRestore.addEventListener("click",function(){
     KV.locks=ex.locks||{};KV.history=Array.isArray(ex.history)?ex.history:[];
     ["templates","budgets","memo","locks","history"].forEach(saveKV);
     if(ex.car)carReplaceAll(carNorm(ex.car).records);
+    if(ex.projects){KV.projects=projNorm(ex.projects);saveKV("projects")}
+    if(ex.tax){KV.tax=taxNorm(ex.tax);saveKV("tax")}
   }
   for(var m=1;m<=12;m++){
     ALL.forEach(function(k){
@@ -407,6 +414,8 @@ moreDlg.addEventListener("click",function(e){
   else if(k==="history")location.hash=YEAR+"-history";
   else if(k==="compare")location.hash=YEAR+"-compare";
   else if(k==="annual")location.hash=YEAR+"-annual";
+  else if(k==="projects")location.hash=YEAR+"-projects";
+  else if(k==="tax")location.hash=YEAR+"-tax";
   else if(k==="theme")document.getElementById("themeBtn").click();
   else if(k==="backup")openBackup();
   else if(k==="lock"&&isMonth())toggleLock(cur);

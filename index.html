@@ -73,11 +73,13 @@
   <div class="mvgrid">
     <label for="mvText" id="mvTextLb">항목</label><input id="mvText" autocomplete="off">
     <span></span><div id="mvTags" aria-label="태그 붙이기"></div>
+    <label for="mvPay" id="mvPayLb">결제수단</label><select id="mvPay"><option value="">-</option><option value="신용">신용카드</option><option value="체크">체크카드</option><option value="현금">현금영수증</option></select>
+    <label for="mvSp" id="mvSpLb">구분</label><select id="mvSp"><option value="">일반</option><option value="시장">전통시장</option><option value="교통">대중교통</option><option value="문화">도서·공연</option></select>
     <label for="mvAmt">금액</label><input id="mvAmt" class="amt" inputmode="numeric" placeholder="0">
     <label for="mvDay" id="mvDayLb">날짜(일)</label><input id="mvDay" type="number" min="1" max="31" placeholder="비워도 돼요">
     <label for="mvPayer" id="mvPayerLb">결제자</label><select id="mvPayer"><option value="">-</option><option value="옹">옹</option><option value="답">답</option></select>
   </div>
-  <div class="dlg-actions"><button class="btn primary" type="button" id="mvSave">수정 저장</button></div>
+  <div class="dlg-actions"><button class="btn primary" type="button" id="mvSave">수정 저장</button><button class="btn" type="button" id="mvSplit">나누기</button></div>
   <div class="kvsub">다른 곳으로 보내기 (복사는 같은 자리에도 돼요)</div>
   <div class="mvgrid">
     <label for="mvSec">구분</label><select id="mvSec"></select>
@@ -132,12 +134,43 @@
   </div>
 </dialog>
 
+<dialog id="splitDlg">
+  <h2>항목 나누기</h2>
+  <p id="splitInfo"></p>
+  <div id="splitBody"></div>
+  <button class="add" type="button" id="splitAdd">+ 줄 추가</button>
+  <div class="msg" id="splitRemain" role="status"></div>
+  <div class="dlg-actions">
+    <button class="btn primary" type="button" id="splitOk" disabled>나누기 저장</button>
+    <button class="btn" type="button" id="splitCancel">취소</button>
+  </div>
+</dialog>
+
+<dialog id="projDlg">
+  <h2 id="projTitle">프로젝트</h2>
+  <div class="mvgrid">
+    <label for="projName">이름</label><input id="projName" autocomplete="off" placeholder="예: 출산 준비">
+    <label for="projTag">태그</label><input id="projTag" autocomplete="off" placeholder="예: 출산준비 (# 없이)">
+    <span></span><div id="projTags" class="chips" style="margin:0"></div>
+    <label for="projBudget">목표 예산</label><input id="projBudget" class="amt" inputmode="numeric" placeholder="비워도 돼요">
+    <label for="projMemo">메모</label><input id="projMemo" autocomplete="off">
+  </div>
+  <p class="hint" style="margin-top:8px">지출 내용에 <b>#태그</b>를 붙이면 이 프로젝트에 모여요. 예) 유모차 #출산준비</p>
+  <div class="dlg-actions">
+    <button class="btn primary" type="button" id="projSave">저장</button>
+    <button class="btn dangerbtn" type="button" id="projDel" hidden>삭제</button>
+    <button class="btn" type="button" id="projClose">닫기</button>
+  </div>
+</dialog>
+
 <dialog id="more">
   <h2>더보기</h2>
   <div class="kvsub" style="margin-top:0">통계</div>
   <div class="morelist">
     <button class="btn" type="button" data-m="compare">월별 비교</button>
     <button class="btn" type="button" data-m="annual">연간 결산</button>
+    <button class="btn" type="button" data-m="projects">프로젝트 가계부</button>
+    <button class="btn" type="button" data-m="tax">연말정산 도우미</button>
   </div>
   <div class="kvsub">기능</div>
   <div class="morelist">
@@ -199,6 +232,9 @@
 <script src="js/realtime.js"></script>
 <script src="js/insights.js"></script>
 <script src="js/car.js"></script>
+<script src="js/quick.js"></script>
+<script src="js/projects.js"></script>
+<script src="js/tax.js"></script>
 <script src="js/shell.js"></script>
 </body>
 </html>

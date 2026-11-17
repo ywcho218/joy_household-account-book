@@ -69,6 +69,12 @@ function rtKV(p){
     if(cur==="car"&&JSON.stringify(KV.car.records)!==before)rtRender();
     return;
   }
+  if(r&&r.household_id===HH&&(r.key==="projects"||r.key==="tax")){
+    if(kvDirty[r.key])return;
+    if(r.key==="projects")KV.projects=projNorm(r.value);else KV.tax=taxNorm(r.value);
+    if(cur===r.key)rtRender();
+    return;
+  }
   if(!r||r.household_id!==HH||r.key!=="locks"||kvDirty.locks)return;
   var v=r.value||{};
   if(JSON.stringify(v)===JSON.stringify(KV.locks))return;

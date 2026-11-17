@@ -69,7 +69,10 @@ function mvOpen(row){
   var v=isVar(sec);
   document.getElementById("mvInfo").textContent=cur+"월 "+SECS[sec];
   document.getElementById("mvTextLb").textContent=v?"내용":"항목";
-  document.getElementById("mvText").value=(v?it.desc:it.name)||"";
+  var md=v?methodOf(it.desc):{pay:"",sp:""};
+  document.getElementById("mvText").value=v?stripMethod(it.desc):(it.name||"");
+  document.getElementById("mvPay").value=md.pay;document.getElementById("mvSp").value=md.sp;
+  ["mvPay","mvPayLb","mvSp","mvSpLb","mvSplit"].forEach(function(k){document.getElementById(k).hidden=!v});
   var mt=document.getElementById("mvTags");
   mt.innerHTML=v?tagStats().slice(0,8).map(function(t){return '<button type="button" class="qbtn" data-tag="'+esc(t.t)+'">#'+esc(t.t)+'</button>'}).join("")+'<span class="hint" style="margin:0 0 0 2px">내용에 #태그를 붙이면 모아 볼 수 있어요</span>':"";
   var am=document.getElementById("mvAmt");am.inputMode=AMT_MODE;am.value=fmtIn(it.amt);
@@ -92,7 +95,7 @@ document.getElementById("mvTags").addEventListener("click",function(e){
 document.getElementById("mvSave").addEventListener("click",function(){
   var it=mvItem();if(!it)return;
   var v=isVar(mvRow.sec), txt=document.getElementById("mvText").value;
-  if(v)it.desc=txt;else it.name=txt;
+  if(v)it.desc=withMethod(txt,document.getElementById("mvPay").value,document.getElementById("mvSp").value);else it.name=txt;
   it.amt=parseAmt(document.getElementById("mvAmt"));
   if(v){var dd=parseInt(document.getElementById("mvDay").value,10);it.day=(dd>=1&&dd<=31)?dd+"일":""}
   if(mvRow.sec==="fixed"||v)it.payer=document.getElementById("mvPayer").value;

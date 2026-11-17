@@ -70,7 +70,7 @@ function homeView(){
   var alerts=notes.length?'<section class="card homealert" style="padding:12px 14px">'+notes.map(function(n){return '<p>'+n+'</p>'}).join("")+'</section>':"";
   var sendSec='<section class="settle" aria-label="결제자별 합계"><div class="who o"><span class="lb"><i></i>옹우한테 보내준 돈</span><div class="v">'+won(r.sendO)+'</div><span class="sub">옹 결제 항목 합계</span></div><div class="who d"><span class="lb"><i></i>답니한테 보내준 돈</span><div class="v">'+won(r.sendD)+'</div><span class="sub">답 결제 항목 합계</span></div></section>';
   return '<div class="pagehead"><div><h1>'+YEAR+'년 '+m+'월 홈</h1></div><div class="pager"><a class="btn" href="#'+YEAR+'-m'+m+'">월 화면</a><a class="btn" href="#'+YEAR+'-calendar">달력</a></div></div>'
-    +alerts+cards+'<div class="homegrid">'+budSec+share+wkSec+sendSec+'</div>';
+    +qlineHTML()+alerts+cards+'<div class="homegrid">'+budSec+share+wkSec+sendSec+'</div>';
 }
 
 /* ---------- 달력 보기 ---------- */
